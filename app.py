@@ -7,17 +7,24 @@ from mutagen.flac import FLAC, Picture
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY","tidal-web")
 
-# ---------- helpers ----------
+# ---------------- helpers ----------------
 
 def safe_filename(name):
     return re.sub(r'[\\/*?:"<>|]',"",str(name))
 
 def parse_tidal_url(url):
 
-    m = re.search(r"track/(\d+)",url)
+    patterns = [
+        r"tidal\.com/(?:browse/)?track/(\d+)",
+        r"listen\.tidal\.com/(?:browse/)?track/(\d+)"
+    ]
 
-    if m:
-        return int(m.group(1))
+    for p in patterns:
+
+        m = re.search(p,url)
+
+        if m:
+            return int(m.group(1))
 
     return None
 
@@ -27,10 +34,11 @@ def get_cover(track):
     try:
         url = track.album.image(1280)
 
-        r = requests.get(url)
+        r = requests.get(url,timeout=15)
 
         if r.status_code == 200:
             return r.content
+
     except:
         pass
 
@@ -52,7 +60,7 @@ def get_lyrics(track):
         return None
 
 
-# ---------- metadata ----------
+# ---------------- metadata ----------------
 
 def add_metadata(audio_bytes,track,cover,lyrics):
 
@@ -77,12 +85,13 @@ def add_metadata(audio_bytes,track,cover,lyrics):
         audio.add_picture(pic)
 
     out = io.BytesIO()
+
     audio.save(out)
 
     return out.getvalue()
 
 
-# ---------- token ----------
+# ---------------- TOKEN ----------------
 
 @app.route("/api/token",methods=["POST"])
 def set_token():
@@ -99,7 +108,7 @@ def set_token():
     return jsonify({"ok":True})
 
 
-# ---------- info ----------
+# ---------------- INFO ----------------
 
 @app.route("/api/info",methods=["POST"])
 def info():
@@ -107,12 +116,14 @@ def info():
     if "token" not in session:
         return jsonify({"error":"sin token"}),401
 
-    url = request.json.get("url","")
+    data = request.json or {}
+
+    url = data.get("url","")
 
     track_id = parse_tidal_url(url)
 
     if not track_id:
-        return jsonify({"error":"url inválida"}),400
+        return jsonify({"error":"URL de Tidal no reconocida"}),400
 
     tidal = tidalapi.Session()
 
@@ -121,16 +132,24 @@ def info():
         access_token=session["token"]
     )
 
-    track = tidal.track(track_id)
+    try:
 
-    return jsonify({
-        "id":track.id,
-        "title":track.name,
-        "artist":track.artist.name
-    })
+        track = tidal.track(track_id)
+
+        return jsonify({
+            "id":track.id,
+            "title":track.name,
+            "artist":track.artist.name,
+            "album":track.album.name,
+            "duration":track.duration
+        })
+
+    except Exception as e:
+
+        return jsonify({"error":str(e)}),500
 
 
-# ---------- download audio ----------
+# ---------------- DOWNLOAD SONG ----------------
 
 @app.route("/api/download/<int:track_id>")
 def download(track_id):
@@ -151,7 +170,7 @@ def download(track_id):
 
         stream = track.get_url()
 
-        r = requests.get(stream)
+        r = requests.get(stream,timeout=120)
 
         audio = r.content
 
@@ -179,10 +198,10 @@ def download(track_id):
         return jsonify({"error":str(e)}),500
 
 
-# ---------- download lyrics ----------
+# ---------------- DOWNLOAD LYRICS ----------------
 
 @app.route("/api/lyrics/<int:track_id>")
-def download_lyrics(track_id):
+def lyrics(track_id):
 
     if "token" not in session:
         return jsonify({"error":"sin token"}),401
@@ -221,14 +240,15 @@ def download_lyrics(track_id):
         return jsonify({"error":str(e)}),500
 
 
-# ---------- frontend ----------
+# ---------------- FRONTEND ----------------
 
 @app.route("/")
 def index():
+
     return send_file("index.html")
 
 
-# ---------- run ----------
+# ---------------- RUN ----------------
 
 if __name__ == "__main__":
 
