@@ -1,13 +1,16 @@
 from flask import Flask, request, jsonify, session, send_file, Response
 import tidalapi
-import os, re, io, uuid, requests as req_lib, tempfile, threading, time, json, base64
+import os, re, requests as req_lib
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "tidal-web-secret-2024")
 
-# Jobs en memoria por sesión
-jobs = {}
-jobs_lock = threading.Lock()
+QUALITY_MAP = {
+    "Master": tidalapi.Quality.master,
+    "HiFi":   tidalapi.Quality.high,
+    "High":   tidalapi.Quality.low,
+    "Normal": tidalapi.Quality.low_96k,
+}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -29,9 +32,9 @@ def parse_tidal_url(url):
             return tipo, m.group(1)
     return None, None
 
-def get_session_from_token(access_token):
-    """Crea una sesión tidalapi a partir del accessToken del usuario."""
-    tidal = tidalapi.Session()
+def get_tidal_session(access_token, quality="HiFi"):
+    config = tidalapi.Config(quality=QUALITY_MAP.get(quality, tidalapi.Quality.high))
+    tidal  = tidalapi.Session(config)
     try:
         tidal.load_oauth_session(
             token_type="Bearer",
@@ -45,24 +48,71 @@ def get_session_from_token(access_token):
     except Exception as e:
         return None, str(e)
 
-# ── Rutas de Token ────────────────────────────────────────────────────────────
+def safe_filename(s):
+    return re.sub(r'[\\/*?:"<>|]', "", str(s)).strip()
+
+def add_metadata(data: bytes, content_type: str, track, cover_data=None, lyrics=None) -> bytes:
+    try:
+        import io as _io
+        buf = _io.BytesIO(data)
+
+        if "flac" in content_type:
+            from mutagen.flac import FLAC, Picture
+            audio = FLAC(buf)
+            audio["title"]  = track.name
+            audio["artist"] = track.artist.name
+            try: audio["album"] = track.album.name
+            except: pass
+            try: audio["tracknumber"] = str(track.track_num)
+            except: pass
+            if lyrics:
+                audio["lyrics"] = lyrics
+            if cover_data:
+                pic = Picture()
+                pic.type = 3
+                pic.mime = "image/jpeg"
+                pic.data = cover_data
+                audio.add_picture(pic)
+            out = _io.BytesIO()
+            audio.save(out)
+            return out.getvalue()
+
+        elif "mp4" in content_type or "m4a" in content_type or "aac" in content_type:
+            from mutagen.mp4 import MP4, MP4Cover
+            audio = MP4(buf)
+            audio["\xa9nam"] = [track.name]
+            audio["\xa9ART"] = [track.artist.name]
+            try: audio["\xa9alb"] = [track.album.name]
+            except: pass
+            try: audio["trkn"] = [(track.track_num, 0)]
+            except: pass
+            if lyrics:
+                audio["\xa9lyr"] = [lyrics]
+            if cover_data:
+                audio["covr"] = [MP4Cover(cover_data, imageformat=MP4Cover.FORMAT_JPEG)]
+            out = _io.BytesIO()
+            audio.save(out)
+            return out.getvalue()
+    except:
+        pass
+    return data
+
+# ── Token ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/token", methods=["POST"])
 def set_token():
-    data = request.json or {}
+    data  = request.json or {}
     token = (data.get("token") or "").strip()
     if not token:
         return jsonify({"error": "Token vacío"}), 400
-
-    tidal, err = get_session_from_token(token)
+    tidal, err = get_tidal_session(token)
     if err:
         return jsonify({"error": err}), 401
-
     session["access_token"] = token
     try:
         user = tidal.user
-        name = getattr(user, "first_name", "") + " " + getattr(user, "last_name", "")
-        return jsonify({"ok": True, "user": name.strip() or "Usuario Tidal"})
+        name = (getattr(user, "first_name", "") + " " + getattr(user, "last_name", "")).strip()
+        return jsonify({"ok": True, "user": name or "Usuario Tidal"})
     except:
         return jsonify({"ok": True, "user": "Usuario Tidal"})
 
@@ -71,19 +121,19 @@ def clear_token():
     session.pop("access_token", None)
     return jsonify({"ok": True})
 
-@app.route("/api/token/status", methods=["GET"])
+@app.route("/api/token/status")
 def token_status():
     token = session.get("access_token")
     if not token:
         return jsonify({"logged_in": False})
-    tidal, err = get_session_from_token(token)
+    tidal, err = get_tidal_session(token)
     if err:
         session.pop("access_token", None)
         return jsonify({"logged_in": False})
     try:
         user = tidal.user
-        name = getattr(user, "first_name", "") + " " + getattr(user, "last_name", "")
-        return jsonify({"logged_in": True, "user": name.strip() or "Usuario Tidal"})
+        name = (getattr(user, "first_name", "") + " " + getattr(user, "last_name", "")).strip()
+        return jsonify({"logged_in": True, "user": name or "Usuario Tidal"})
     except:
         return jsonify({"logged_in": True, "user": "Usuario Tidal"})
 
@@ -94,81 +144,107 @@ def get_info():
     token = session.get("access_token")
     if not token:
         return jsonify({"error": "Sin sesión activa"}), 401
-
     url = (request.json or {}).get("url", "").strip()
     tipo, eid = parse_tidal_url(url)
     if not tipo:
         return jsonify({"error": "URL de Tidal no reconocida"}), 400
-
-    tidal, err = get_session_from_token(token)
+    tidal, err = get_tidal_session(token)
     if err:
         return jsonify({"error": err}), 401
-
     try:
         if tipo == "track":
             t = tidal.track(int(eid))
             return jsonify({
-                "type": "track", "title": t.name, "artist": t.artist.name,
-                "cover": None,
+                "type": "track", "title": t.name, "artist": t.artist.name, "cover": None,
                 "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
-                             "duration": fmt_dur(t.duration), "url": url}]
+                            "album": getattr(getattr(t,"album",None),"name",""),
+                            "track_num": getattr(t,"track_num",1),
+                            "duration": fmt_dur(t.duration), "url": url}]
             })
         elif tipo == "album":
-            a = tidal.album(int(eid))
-            ts = a.tracks()
+            a  = tidal.album(int(eid))
+            ts = list(a.tracks())
+            cover = None
+            try: cover = a.image(320)
+            except: pass
             return jsonify({
-                "type": "album", "title": a.name, "artist": a.artist.name,
-                "cover": a.image(320) if hasattr(a, "image") else None,
+                "type": "album", "title": a.name, "artist": a.artist.name, "cover": cover,
                 "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
-                             "duration": fmt_dur(t.duration),
-                             "url": f"https://tidal.com/browse/track/{t.id}"} for t in ts]
+                            "album": a.name, "track_num": getattr(t,"track_num",i+1),
+                            "duration": fmt_dur(t.duration),
+                            "url": f"https://tidal.com/browse/track/{t.id}"}
+                           for i, t in enumerate(ts)]
             })
         elif tipo == "playlist":
-            p = tidal.playlist(eid)
+            p  = tidal.playlist(eid)
             ts = list(p.tracks())
             return jsonify({
-                "type": "playlist", "title": p.name, "artist": "",
-                "cover": None,
+                "type": "playlist", "title": p.name, "artist": "", "cover": None,
                 "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
-                             "duration": fmt_dur(t.duration),
-                             "url": f"https://tidal.com/browse/track/{t.id}"} for t in ts]
+                            "album": getattr(getattr(t,"album",None),"name",""),
+                            "track_num": getattr(t,"track_num",i+1),
+                            "duration": fmt_dur(t.duration),
+                            "url": f"https://tidal.com/browse/track/{t.id}"}
+                           for i, t in enumerate(ts)]
             })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── Download (stream directo al navegador) ────────────────────────────────────
+# ── Download ──────────────────────────────────────────────────────────────────
 
-@app.route("/api/download/<int:track_id>", methods=["GET"])
+@app.route("/api/download/<int:track_id>")
 def download_track(track_id):
     token = session.get("access_token")
     if not token:
         return jsonify({"error": "Sin sesión activa"}), 401
 
-    tidal, err = get_session_from_token(token)
+    quality   = request.args.get("quality", "HiFi")
+    do_lyrics = request.args.get("lyrics", "true").lower() == "true"
+
+    tidal, err = get_tidal_session(token, quality)
     if err:
         return jsonify({"error": err}), 401
 
     try:
-        track = tidal.track(track_id)
+        track      = tidal.track(track_id)
         stream_url = track.get_url()
-        artist = re.sub(r'[\\/*?:"<>|]', "", track.artist.name)
-        title  = re.sub(r'[\\/*?:"<>|]', "", track.name)
-        filename = f"{artist} - {title}.flac"
-
-        # Proxy stream al navegador
-        r = req_lib.get(stream_url, stream=True, timeout=30)
+        r          = req_lib.get(stream_url, timeout=60)
         content_type = r.headers.get("Content-Type", "audio/flac")
+        audio_data   = r.content
 
-        def generate():
-            for chunk in r.iter_content(chunk_size=8192):
-                if chunk:
-                    yield chunk
+        # Portada
+        cover_data = None
+        try:
+            cover_url = track.album.image(1280)
+            cr = req_lib.get(cover_url, timeout=10)
+            if cr.status_code == 200:
+                cover_data = cr.content
+        except: pass
 
-        response = Response(generate(), content_type=content_type)
-        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
-        if "Content-Length" in r.headers:
-            response.headers["Content-Length"] = r.headers["Content-Length"]
-        return response
+        # Letras
+        lyrics_text = None
+        if do_lyrics:
+            try:
+                lyr = track.lyrics()
+                lyrics_text = getattr(lyr,"subtitles",None) or getattr(lyr,"text",None)
+            except: pass
+
+        # Metadatos
+        audio_data = add_metadata(audio_data, content_type, track, cover_data, lyrics_text)
+
+        # Extensión
+        ext = "flac"
+        if "mp4" in content_type or "m4a" in content_type: ext = "m4a"
+        elif "aac" in content_type:  ext = "aac"
+        elif "mpeg" in content_type or "mp3" in content_type: ext = "mp3"
+        elif "opus" in content_type: ext = "opus"
+
+        filename = f"{safe_filename(track.artist.name)} - {safe_filename(track.name)}.{ext}"
+
+        return Response(audio_data, content_type=content_type, headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(audio_data)),
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
