@@ -6,10 +6,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "tidal-web-secret-2024")
 
 QUALITY_MAP = {
-    "Master": tidalapi.Quality.master,
-    "HiFi":   tidalapi.Quality.high,
-    "High":   tidalapi.Quality.low,
-    "Normal": tidalapi.Quality.low_96k,
+    "Master": tidalapi.Quality.hi_res,
+    "HiFi":   tidalapi.Quality.lossless,
+    "High":   tidalapi.Quality.high,
+    "Normal": tidalapi.Quality.low,
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
