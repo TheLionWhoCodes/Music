@@ -7,604 +7,384 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c27;
-    --border: #2a2a3a;
-    --accent: #00e5ff;
-    --accent2: #7c3aed;
-    --text: #e8e8f0;
-    --muted: #6b6b80;
-    --success: #00e676;
-    --error: #ff5252;
-    --radius: 12px;
+    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27;
+    --border: #2a2a3a; --accent: #00e5ff; --text: #e8e8f0;
+    --muted: #6b6b80; --success: #00e676; --error: #ff5252; --radius: 12px;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', sans-serif; min-height: 100vh;
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,229,255,0.08) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 50%);
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,229,255,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(124,58,237,0.05) 0%, transparent 50%);
   }
-
-  /* ── Layout ── */
-  .app { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-
-  /* ── Header ── */
+  .app { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
   header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1.5rem 0 2.5rem;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 2.5rem;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 1.5rem 0 2.5rem; border-bottom: 1px solid var(--border); margin-bottom: 2.5rem;
   }
-  .logo {
-    font-family: 'Space Mono', monospace;
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: -1px;
-    color: var(--text);
-  }
+  .logo { font-family:'Space Mono',monospace; font-size:1.4rem; font-weight:700; letter-spacing:-1px; }
   .logo span { color: var(--accent); }
-
   .user-badge {
-    display: flex; align-items: center; gap: 0.6rem;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 0.4rem 0.8rem 0.4rem 0.5rem;
-    font-size: 0.8rem;
-    color: var(--muted);
+    display:flex; align-items:center; gap:.6rem;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:100px; padding:.4rem .8rem .4rem .5rem; font-size:.8rem; color:var(--muted);
   }
-  .user-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--success);
-    box-shadow: 0 0 8px var(--success);
-  }
-  .user-dot.offline { background: var(--muted); box-shadow: none; }
-
-  /* ── Token Section ── */
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); }
+  .dot.on { background:var(--success); box-shadow:0 0 8px var(--success); }
   .section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:1.5rem; margin-bottom:1.5rem;
   }
   .section-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 1rem;
+    font-family:'Space Mono',monospace; font-size:.7rem;
+    letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:1rem;
   }
-
-  /* ── Inputs ── */
-  .input-row { display: flex; gap: 0.75rem; }
+  .input-row { display:flex; gap:.75rem; }
   input[type="text"], input[type="password"] {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    padding: 0.75rem 1rem;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.78rem;
-    outline: none;
-    transition: border-color 0.2s;
+    flex:1; background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); padding:.75rem 1rem;
+    font-family:'Space Mono',monospace; font-size:.78rem; outline:none; transition:border-color .2s;
   }
-  input:focus { border-color: var(--accent); }
-  input::placeholder { color: var(--muted); }
-
-  /* ── Buttons ── */
+  input:focus { border-color:var(--accent); }
+  input::placeholder { color:var(--muted); }
   .btn {
-    padding: 0.75rem 1.25rem;
-    border: none; border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.88rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.18s;
-    white-space: nowrap;
+    padding:.75rem 1.25rem; border:none; border-radius:8px;
+    font-family:'DM Sans',sans-serif; font-size:.88rem; font-weight:500;
+    cursor:pointer; transition:all .18s; white-space:nowrap;
   }
-  .btn-primary {
-    background: var(--accent);
-    color: #000;
-  }
-  .btn-primary:hover { background: #33eaff; transform: translateY(-1px); }
-  .btn-danger {
-    background: transparent;
-    border: 1px solid var(--error);
-    color: var(--error);
-  }
-  .btn-danger:hover { background: rgba(255,82,82,0.1); }
-  .btn-ghost {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+  .btn-primary { background:var(--accent); color:#000; }
+  .btn-primary:hover { background:#33eaff; transform:translateY(-1px); }
+  .btn-danger { background:transparent; border:1px solid var(--error); color:var(--error); }
+  .btn-danger:hover { background:rgba(255,82,82,0.1); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; transform:none !important; }
 
-  /* ── URL Section ── */
-  .url-section { margin-bottom: 1.5rem; }
-
-  /* ── Track List ── */
-  .results-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 1rem;
+  .options-row {
+    display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+    padding:.75rem 0; border-top:1px solid var(--border); margin-top:.75rem;
   }
-  .results-meta { font-size: 0.85rem; color: var(--muted); }
-  .results-meta strong { color: var(--text); }
+  .opt-label { font-size:.8rem; color:var(--muted); }
+  select {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); padding:.5rem .75rem;
+    font-family:'DM Sans',sans-serif; font-size:.85rem; outline:none; cursor:pointer;
+  }
+  select:focus { border-color:var(--accent); }
+  .toggle-wrap { display:flex; align-items:center; gap:.5rem; cursor:pointer; }
+  .toggle {
+    position:relative; width:36px; height:20px;
+    background:var(--border); border-radius:100px; transition:background .2s;
+  }
+  .toggle::after {
+    content:''; position:absolute; top:3px; left:3px;
+    width:14px; height:14px; border-radius:50%; background:var(--muted); transition:all .2s;
+  }
+  .toggle.on { background:var(--accent); }
+  .toggle.on::after { left:19px; background:#000; }
+  .toggle-label { font-size:.83rem; color:var(--muted); user-select:none; }
 
-  .cover-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
-  .cover-img { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; }
-  .cover-info { flex: 1; }
-  .cover-title { font-weight: 700; font-size: 1rem; }
-  .cover-artist { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
-
+  .results-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .results-meta { font-size:.85rem; color:var(--muted); }
+  .results-meta strong { color:var(--text); }
+  .cover-row { display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem; }
+  .cover-img { width:64px; height:64px; border-radius:8px; object-fit:cover; }
+  .cover-title { font-weight:700; font-size:1rem; }
+  .cover-artist { color:var(--muted); font-size:.85rem; margin-top:2px; }
   .select-all-row {
-    display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.5rem 0;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.83rem;
-    color: var(--muted);
-    cursor: pointer;
+    display:flex; align-items:center; gap:.5rem;
+    padding:.5rem 0; margin-bottom:.5rem;
+    border-bottom:1px solid var(--border);
+    font-size:.83rem; color:var(--muted); cursor:pointer;
   }
-  .select-all-row:hover { color: var(--text); }
-
-  .track-list { display: flex; flex-direction: column; gap: 2px; }
+  .select-all-row:hover { color:var(--text); }
+  .track-list { display:flex; flex-direction:column; gap:2px; }
   .track-item {
-    display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.65rem 0.75rem;
-    border-radius: 8px;
-    transition: background 0.15s;
-    cursor: pointer;
+    display:flex; align-items:center; gap:.75rem;
+    padding:.65rem .75rem; border-radius:8px; transition:background .15s; cursor:pointer;
   }
-  .track-item:hover { background: var(--surface2); }
-  .track-item.selected { background: rgba(0,229,255,0.06); }
-
-  .track-check {
-    width: 16px; height: 16px; border-radius: 4px;
-    border: 1.5px solid var(--border);
-    background: transparent;
-    flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
+  .track-item:hover { background:var(--surface2); }
+  .track-item.selected { background:rgba(0,229,255,0.06); }
+  .chk {
+    width:16px; height:16px; border-radius:4px;
+    border:1.5px solid var(--border); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; transition:all .15s;
   }
-  .track-item.selected .track-check {
-    background: var(--accent);
-    border-color: var(--accent);
+  .track-item.selected .chk { background:var(--accent); border-color:var(--accent); }
+  .track-item.selected .chk::after { content:'✓'; font-size:10px; color:#000; font-weight:700; }
+  .track-num { font-family:'Space Mono',monospace; font-size:.72rem; color:var(--muted); width:22px; text-align:right; flex-shrink:0; }
+  .track-info { flex:1; min-width:0; }
+  .track-title { font-size:.88rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .track-sub { font-size:.73rem; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .track-dur { font-family:'Space Mono',monospace; font-size:.72rem; color:var(--muted); flex-shrink:0; }
+  .dl-btn {
+    background:transparent; border:1px solid var(--border);
+    color:var(--muted); border-radius:6px; padding:.3rem .6rem;
+    font-size:.75rem; cursor:pointer; transition:all .15s; flex-shrink:0;
   }
-  .track-item.selected .track-check::after {
-    content: '✓';
-    font-size: 10px;
-    color: #000;
-    font-weight: 700;
-  }
-
-  .track-num { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); width: 22px; text-align: right; flex-shrink: 0; }
-  .track-info { flex: 1; min-width: 0; }
-  .track-title { font-size: 0.88rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .track-artist { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
-  .track-dur { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); flex-shrink: 0; }
-  .track-dl-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 6px;
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.15s;
-    flex-shrink: 0;
-  }
-  .track-dl-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .track-dl-btn.downloading { color: var(--accent); border-color: var(--accent); animation: pulse 1s infinite; }
-  .track-dl-btn.done { color: var(--success); border-color: var(--success); }
-
-  /* ── Download Bar ── */
+  .dl-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .dl-btn.loading { color:var(--accent); border-color:var(--accent); animation:pulse 1s infinite; }
+  .dl-btn.done { color:var(--success); border-color:var(--success); }
+  .dl-btn.err { color:var(--error); border-color:var(--error); }
   .dl-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 1rem 1.5rem;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 1rem;
-    backdrop-filter: blur(10px);
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 100;
+    position:fixed; bottom:0; left:0; right:0;
+    background:var(--surface); border-top:1px solid var(--border);
+    padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between;
+    gap:1rem; transform:translateY(100%);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1); z-index:100;
   }
-  .dl-bar.visible { transform: translateY(0); }
-  .dl-count { font-size: 0.85rem; }
-  .dl-count strong { color: var(--accent); font-family: 'Space Mono', monospace; }
-
-  /* ── Toast ── */
+  .dl-bar.visible { transform:translateY(0); }
+  .dl-count strong { color:var(--accent); font-family:'Space Mono',monospace; }
   .toast {
-    position: fixed; top: 1.5rem; right: 1.5rem;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.8rem 1.1rem;
-    font-size: 0.85rem;
-    z-index: 999;
-    opacity: 0;
-    transform: translateX(20px);
-    transition: all 0.25s;
-    max-width: 280px;
+    position:fixed; top:1.5rem; right:1.5rem;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:var(--radius); padding:.8rem 1.1rem;
+    font-size:.85rem; z-index:999; opacity:0; transform:translateX(20px);
+    transition:all .25s; max-width:280px;
   }
-  .toast.show { opacity: 1; transform: translateX(0); }
-  .toast.success { border-color: var(--success); color: var(--success); }
-  .toast.error { border-color: var(--error); color: var(--error); }
-
-  /* ── States ── */
-  .hidden { display: none !important; }
+  .toast.show { opacity:1; transform:translateX(0); }
+  .toast.success { border-color:var(--success); color:var(--success); }
+  .toast.error { border-color:var(--error); color:var(--error); }
+  .hidden { display:none !important; }
   .spinner {
-    display: inline-block; width: 14px; height: 14px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle; margin-right: 6px;
+    display:inline-block; width:14px; height:14px;
+    border:2px solid var(--border); border-top-color:var(--accent);
+    border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:6px;
   }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-  /* ── Token help ── */
-  .help-text {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 0.6rem;
-    line-height: 1.5;
-  }
-  .help-text a { color: var(--accent); text-decoration: none; }
-  .help-text a:hover { text-decoration: underline; }
-
-  /* Logged in state */
-  #token-logged { display: none; }
-  #token-form { display: flex; flex-direction: column; gap: 0.75rem; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
+  .help-text { font-size:.75rem; color:var(--muted); margin-top:.6rem; line-height:1.6; }
+  code { background:var(--surface2); padding:1px 5px; border-radius:4px; font-size:.72rem; }
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- Header -->
   <header>
     <div class="logo">Tidal<span>Get</span></div>
-    <div class="user-badge" id="user-badge">
-      <div class="user-dot offline" id="user-dot"></div>
+    <div class="user-badge">
+      <div class="dot" id="dot"></div>
       <span id="user-name">Sin sesión</span>
     </div>
   </header>
 
-  <!-- Token Section -->
-  <div class="section" id="token-section">
-    <div class="section-title">🔑 Tu Token de Tidal</div>
-
-    <!-- Formulario de login -->
+  <div class="section">
+    <div class="section-title">🔑 Token de Tidal</div>
     <div id="token-form">
       <div class="input-row">
         <input type="password" id="token-input" placeholder="Pega tu accessToken aquí..." />
         <button class="btn btn-primary" onclick="submitToken()">Conectar</button>
       </div>
       <div class="help-text">
-        Tu token no se guarda en ninguna base de datos. Solo existe en tu sesión del navegador.<br>
-        ¿Cómo obtener el token? Abre Tidal web → DevTools (F12) → Application → Local Storage → busca <code>access_token</code>
+        Tu token solo existe en tu sesión, no se guarda en ningún servidor.<br>
+        ¿Cómo obtenerlo? <strong>tidal.com</strong> → F12 → Application → Local Storage → <code>access_token</code>
       </div>
     </div>
-
-    <!-- Estado logueado -->
-    <div id="token-logged" style="display:none">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
+    <div id="token-logged" class="hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-weight:600; font-size:0.95rem;" id="logged-name">Usuario Tidal</div>
-          <div class="help-text" style="margin-top:2px;">Sesión activa ✓</div>
+          <div style="font-weight:600" id="logged-name">Usuario Tidal</div>
+          <div class="help-text" style="margin-top:2px">Sesión activa ✓</div>
         </div>
         <button class="btn btn-danger" onclick="clearToken()">Salir</button>
       </div>
     </div>
   </div>
 
-  <!-- URL Section -->
-  <div class="section url-section" id="url-section" style="display:none">
+  <div class="section hidden" id="url-section">
     <div class="section-title">🔗 URL de Tidal</div>
     <div class="input-row">
       <input type="text" id="url-input" placeholder="https://tidal.com/browse/track/..." />
       <button class="btn btn-primary" id="search-btn" onclick="searchURL()">Buscar</button>
     </div>
+    <div class="options-row">
+      <span class="opt-label">Calidad:</span>
+      <select id="quality-select">
+        <option value="Master">🎵 Master (HiRes)</option>
+        <option value="HiFi" selected>🎶 HiFi (FLAC)</option>
+        <option value="High">🔊 High (AAC 320)</option>
+        <option value="Normal">📻 Normal (AAC 96)</option>
+      </select>
+      <div class="toggle-wrap" onclick="toggleLyrics()">
+        <div class="toggle on" id="lyr-toggle"></div>
+        <span class="toggle-label" id="lyr-label">Letras activadas</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Results -->
   <div class="section hidden" id="results-section">
     <div class="results-header">
       <div class="section-title" style="margin:0">📋 Resultados</div>
       <div class="results-meta" id="results-meta"></div>
     </div>
-
     <div id="cover-row" class="cover-row hidden">
       <img id="cover-img" class="cover-img" src="" alt="">
-      <div class="cover-info">
+      <div>
         <div class="cover-title" id="cover-title"></div>
         <div class="cover-artist" id="cover-artist"></div>
       </div>
     </div>
-
     <div class="select-all-row" onclick="toggleSelectAll()">
-      <div class="track-check" id="select-all-check"></div>
-      <span id="select-all-label">Seleccionar todo</span>
+      <div class="chk" id="all-chk"></div>
+      <span id="all-label">Seleccionar todo</span>
     </div>
-
     <div class="track-list" id="track-list"></div>
   </div>
 
 </div>
 
-<!-- Download Bar -->
 <div class="dl-bar" id="dl-bar">
   <div class="dl-count"><strong id="dl-count">0</strong> canciones seleccionadas</div>
-  <button class="btn btn-primary" id="dl-btn" onclick="downloadSelected()">⬇ Descargar seleccionadas</button>
+  <button class="btn btn-primary" onclick="downloadSelected()">⬇ Descargar seleccionadas</button>
 </div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-let tracks = [];
-let selected = new Set();
-let allSelected = false;
+let tracks=[], selected=new Set(), lyricsOn=true, allSel=false;
 
-// ── Init ───────────────────────────────────────────────────────────────────
-async function init() {
-  const r = await fetch('/api/token/status');
-  const d = await r.json();
-  if (d.logged_in) {
-    setLoggedIn(d.user);
-  }
+async function init(){
+  const d=await(await fetch('/api/token/status')).json();
+  if(d.logged_in) setLoggedIn(d.user);
 }
 
-// ── Token ──────────────────────────────────────────────────────────────────
-async function submitToken() {
-  const token = document.getElementById('token-input').value.trim();
-  if (!token) return toast('Pega tu token primero', 'error');
-
-  const btn = document.querySelector('#token-form .btn-primary');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Verificando...';
-
-  try {
-    const r = await fetch('/api/token', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({token})
-    });
-    const d = await r.json();
-    if (d.ok) {
-      setLoggedIn(d.user);
-      toast('Sesión iniciada ✓', 'success');
-    } else {
-      toast(d.error || 'Token inválido', 'error');
-    }
-  } catch(e) {
-    toast('Error de conexión', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Conectar';
-  }
+async function submitToken(){
+  const token=document.getElementById('token-input').value.trim();
+  if(!token) return toast('Pega tu token primero','error');
+  const btn=document.querySelector('#token-form .btn-primary');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Verificando...';
+  try{
+    const d=await(await fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})).json();
+    if(d.ok){setLoggedIn(d.user);toast('Sesión iniciada ✓','success');}
+    else toast(d.error||'Token inválido','error');
+  }catch{toast('Error de conexión','error');}
+  finally{btn.disabled=false;btn.innerHTML='Conectar';}
 }
 
-async function clearToken() {
-  await fetch('/api/token', {method: 'DELETE'});
-  setLoggedOut();
-  toast('Sesión cerrada');
+async function clearToken(){
+  await fetch('/api/token',{method:'DELETE'});
+  setLoggedOut(); toast('Sesión cerrada');
 }
 
-function setLoggedIn(name) {
-  document.getElementById('token-form').style.display = 'none';
-  document.getElementById('token-logged').style.display = 'block';
-  document.getElementById('logged-name').textContent = name;
-  document.getElementById('user-name').textContent = name;
-  document.getElementById('user-dot').classList.remove('offline');
-  document.getElementById('url-section').style.display = 'block';
+function setLoggedIn(name){
+  document.getElementById('token-form').classList.add('hidden');
+  document.getElementById('token-logged').classList.remove('hidden');
+  document.getElementById('logged-name').textContent=name;
+  document.getElementById('user-name').textContent=name;
+  document.getElementById('dot').classList.add('on');
+  document.getElementById('url-section').classList.remove('hidden');
 }
 
-function setLoggedOut() {
-  document.getElementById('token-form').style.display = 'flex';
-  document.getElementById('token-logged').style.display = 'none';
-  document.getElementById('token-input').value = '';
-  document.getElementById('user-name').textContent = 'Sin sesión';
-  document.getElementById('user-dot').classList.add('offline');
-  document.getElementById('url-section').style.display = 'none';
+function setLoggedOut(){
+  document.getElementById('token-form').classList.remove('hidden');
+  document.getElementById('token-logged').classList.add('hidden');
+  document.getElementById('token-input').value='';
+  document.getElementById('user-name').textContent='Sin sesión';
+  document.getElementById('dot').classList.remove('on');
+  document.getElementById('url-section').classList.add('hidden');
   document.getElementById('results-section').classList.add('hidden');
 }
 
-// ── Search ─────────────────────────────────────────────────────────────────
-async function searchURL() {
-  const url = document.getElementById('url-input').value.trim();
-  if (!url) return toast('Pega una URL de Tidal', 'error');
-
-  const btn = document.getElementById('search-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>';
-
-  try {
-    const r = await fetch('/api/info', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({url})
-    });
-    const d = await r.json();
-    if (d.error) {
-      toast(d.error, 'error');
-    } else {
-      renderResults(d);
-    }
-  } catch(e) {
-    toast('Error al buscar', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Buscar';
-  }
+function toggleLyrics(){
+  lyricsOn=!lyricsOn;
+  document.getElementById('lyr-toggle').classList.toggle('on',lyricsOn);
+  document.getElementById('lyr-label').textContent=lyricsOn?'Letras activadas':'Letras desactivadas';
 }
 
-// Enter en URL input
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('url-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchURL();
-  });
-  document.getElementById('token-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') submitToken();
-  });
-  init();
-});
+async function searchURL(){
+  const url=document.getElementById('url-input').value.trim();
+  if(!url) return toast('Pega una URL de Tidal','error');
+  const btn=document.getElementById('search-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const d=await(await fetch('/api/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})).json();
+    if(d.error) toast(d.error,'error'); else renderResults(d);
+  }catch{toast('Error al buscar','error');}
+  finally{btn.disabled=false;btn.innerHTML='Buscar';}
+}
 
-// ── Render ─────────────────────────────────────────────────────────────────
-function renderResults(data) {
-  tracks = data.tracks;
-  selected.clear();
-  allSelected = false;
-
-  // Cover
-  const coverRow = document.getElementById('cover-row');
-  if (data.cover) {
-    document.getElementById('cover-img').src = data.cover;
-    document.getElementById('cover-title').textContent = data.title;
-    document.getElementById('cover-artist').textContent = data.artist || '';
-    coverRow.classList.remove('hidden');
-  } else {
-    coverRow.classList.add('hidden');
-  }
-
-  document.getElementById('results-meta').innerHTML =
-    `<strong>${tracks.length}</strong> canción${tracks.length !== 1 ? 'es' : ''}`;
-
-  const list = document.getElementById('track-list');
-  list.innerHTML = tracks.map((t, i) => `
-    <div class="track-item" id="track-${i}" onclick="toggleTrack(${i})">
-      <div class="track-check" id="check-${i}"></div>
-      <div class="track-num">${i + 1}</div>
+function renderResults(data){
+  tracks=data.tracks; selected.clear(); allSel=false;
+  if(data.cover){
+    document.getElementById('cover-img').src=data.cover;
+    document.getElementById('cover-title').textContent=data.title;
+    document.getElementById('cover-artist').textContent=data.artist||'';
+    document.getElementById('cover-row').classList.remove('hidden');
+  } else document.getElementById('cover-row').classList.add('hidden');
+  document.getElementById('results-meta').innerHTML=`<strong>${tracks.length}</strong> canción${tracks.length!==1?'es':''}`;
+  document.getElementById('track-list').innerHTML=tracks.map((t,i)=>`
+    <div class="track-item" id="ti-${i}" onclick="toggleTrack(${i})">
+      <div class="chk" id="chk-${i}"></div>
+      <div class="track-num">${i+1}</div>
       <div class="track-info">
         <div class="track-title">${esc(t.title)}</div>
-        <div class="track-artist">${esc(t.artist)}</div>
+        <div class="track-sub">${esc(t.artist)}${t.album?' · '+esc(t.album):''}</div>
       </div>
       <div class="track-dur">${t.duration}</div>
-      <button class="track-dl-btn" id="dl-single-${i}" onclick="event.stopPropagation(); downloadSingle(${i})" title="Descargar">⬇</button>
-    </div>
-  `).join('');
-
+      <button class="dl-btn" id="dlb-${i}" onclick="event.stopPropagation();downloadSingle(${i})">⬇</button>
+    </div>`).join('');
   document.getElementById('results-section').classList.remove('hidden');
-  updateDlBar();
+  updateBar();
 }
 
-function toggleTrack(i) {
-  if (selected.has(i)) selected.delete(i);
-  else selected.add(i);
-
-  const item = document.getElementById(`track-${i}`);
-  const check = document.getElementById(`check-${i}`);
-  if (selected.has(i)) {
-    item.classList.add('selected');
-  } else {
-    item.classList.remove('selected');
-  }
-  updateDlBar();
+function toggleTrack(i){
+  selected.has(i)?selected.delete(i):selected.add(i);
+  document.getElementById(`ti-${i}`).classList.toggle('selected',selected.has(i));
+  updateBar();
 }
 
-function toggleSelectAll() {
-  allSelected = !allSelected;
-  selected.clear();
-  if (allSelected) tracks.forEach((_, i) => selected.add(i));
-
-  tracks.forEach((_, i) => {
-    const item = document.getElementById(`track-${i}`);
-    const check = document.getElementById(`check-${i}`);
-    if (allSelected) item.classList.add('selected');
-    else item.classList.remove('selected');
-  });
-
-  const allCheck = document.getElementById('select-all-check');
-  const allLabel = document.getElementById('select-all-label');
-  if (allSelected) {
-    allCheck.style.background = 'var(--accent)';
-    allCheck.style.borderColor = 'var(--accent)';
-    allCheck.innerHTML = '<span style="font-size:10px;color:#000;font-weight:700">✓</span>';
-    allLabel.textContent = 'Deseleccionar todo';
-  } else {
-    allCheck.style.background = '';
-    allCheck.style.borderColor = '';
-    allCheck.innerHTML = '';
-    allLabel.textContent = 'Seleccionar todo';
-  }
-
-  updateDlBar();
+function toggleSelectAll(){
+  allSel=!allSel; selected.clear();
+  if(allSel) tracks.forEach((_,i)=>selected.add(i));
+  tracks.forEach((_,i)=>document.getElementById(`ti-${i}`).classList.toggle('selected',allSel));
+  const ac=document.getElementById('all-chk'), al=document.getElementById('all-label');
+  if(allSel){
+    ac.style.cssText='background:var(--accent);border-color:var(--accent)';
+    ac.innerHTML='<span style="font-size:10px;color:#000;font-weight:700">✓</span>';
+    al.textContent='Deseleccionar todo';
+  } else {ac.style.cssText='';ac.innerHTML='';al.textContent='Seleccionar todo';}
+  updateBar();
 }
 
-function updateDlBar() {
-  const bar = document.getElementById('dl-bar');
-  const count = document.getElementById('dl-count');
-  count.textContent = selected.size;
-  if (selected.size > 0) bar.classList.add('visible');
-  else bar.classList.remove('visible');
+function updateBar(){
+  document.getElementById('dl-count').textContent=selected.size;
+  document.getElementById('dl-bar').classList.toggle('visible',selected.size>0);
 }
 
-// ── Download ───────────────────────────────────────────────────────────────
-async function downloadSingle(i) {
-  const track = tracks[i];
-  const btn = document.getElementById(`dl-single-${i}`);
-  btn.classList.add('downloading');
-  btn.textContent = '⟳';
-
-  try {
-    const link = document.createElement('a');
-    link.href = `/api/download/${track.id}`;
-    link.download = `${track.artist} - ${track.title}.flac`;
-    link.click();
-    btn.classList.remove('downloading');
-    btn.classList.add('done');
-    btn.textContent = '✓';
-    toast(`Descargando: ${track.title}`, 'success');
-  } catch(e) {
-    btn.classList.remove('downloading');
-    btn.textContent = '⬇';
-    toast('Error al descargar', 'error');
-  }
+async function downloadSingle(i){
+  const t=tracks[i], btn=document.getElementById(`dlb-${i}`);
+  const quality=document.getElementById('quality-select').value;
+  btn.className='dl-btn loading'; btn.textContent='⟳';
+  try{
+    const a=document.createElement('a');
+    a.href=`/api/download/${t.id}?quality=${quality}&lyrics=${lyricsOn}`;
+    a.download=`${t.artist} - ${t.title}`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    btn.className='dl-btn done'; btn.textContent='✓';
+    toast(`⬇ ${t.title}`,'success');
+  }catch{btn.className='dl-btn err';btn.textContent='✗';toast('Error al descargar','error');}
 }
 
-async function downloadSelected() {
-  if (selected.size === 0) return;
-  const indices = Array.from(selected);
-  toast(`Iniciando ${indices.length} descarga${indices.length > 1 ? 's' : ''}...`, 'success');
-
-  // Descargar una por una con pequeño delay
-  for (let idx = 0; idx < indices.length; idx++) {
-    const i = indices[idx];
-    await new Promise(res => setTimeout(res, idx * 800));
-    downloadSingle(i);
-  }
+async function downloadSelected(){
+  if(!selected.size) return;
+  const idx=Array.from(selected);
+  toast(`Iniciando ${idx.length} descarga${idx.length>1?'s':''}...`,'success');
+  for(let i=0;i<idx.length;i++){await new Promise(r=>setTimeout(r,i*900));downloadSingle(idx[i]);}
 }
 
-// ── Utils ──────────────────────────────────────────────────────────────────
-function esc(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 let toastTimer;
-function toast(msg, type = '') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast show' + (type ? ' ' + type : '');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
 }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('url-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchURL();});
+  document.getElementById('token-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitToken();});
+  init();
+});
 </script>
 </body>
 </html>
+
