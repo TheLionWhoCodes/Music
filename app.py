@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, session, send_file, Response
 import tidalapi
-import os, re, requests as req_lib
+import os, re, io, zipfile, requests as req_lib
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "tidal-web-secret-2024")
@@ -33,16 +33,18 @@ def get_tidal_session(access_token, quality="HiFi"):
         "Normal": ["low_96k", "normal"],
     }
     q = None
-    for name in quality_options.get(quality, ["high"]):
+    for name in quality_options.get(quality, ["high", "hifi", "lossless"]):
         if hasattr(tidalapi.Quality, name):
             q = getattr(tidalapi.Quality, name)
             break
     if q is None:
-        q = list(tidalapi.Quality)[0]
-
-    config = tidalapi.Config(quality=q)
-    tidal  = tidalapi.Session(config)
+        try:
+            q = list(tidalapi.Quality)[0]
+        except:
+            q = None
     try:
+        config = tidalapi.Config(quality=q) if q else tidalapi.Config()
+        tidal  = tidalapi.Session(config)
         tidal.load_oauth_session(
             token_type="Bearer",
             access_token=access_token,
@@ -56,53 +58,104 @@ def get_tidal_session(access_token, quality="HiFi"):
         return None, str(e)
 
 def safe_filename(s):
-    return re.sub(r'[\\/*?:"<>|]', "", str(s)).strip()
+    return re.sub(r'[\\/*?:"<>|]', "", str(s or "")).strip()
 
-def add_metadata(data: bytes, content_type: str, track, cover_data=None, lyrics=None) -> bytes:
+def get_cover(track):
     try:
-        import io as _io
-        buf = _io.BytesIO(data)
+        cover_url = track.album.image(1280)
+        r = req_lib.get(cover_url, timeout=15)
+        if r.status_code == 200:
+            return r.content
+    except:
+        pass
+    return None
+
+def get_lyrics(track):
+    try:
+        lyr    = track.lyrics()
+        synced = getattr(lyr, "subtitles", None)
+        plain  = getattr(lyr, "text", None)
+        return synced, plain
+    except:
+        return None, None
+
+def add_metadata(data: bytes, content_type: str, track, cover_data=None, lyrics_plain=None) -> bytes:
+    try:
+        buf       = io.BytesIO(data)
+        title     = track.name
+        artist    = track.artist.name
+        album     = getattr(getattr(track, "album", None), "name", "") or ""
+        track_num = str(getattr(track, "track_num", 1))
 
         if "flac" in content_type:
             from mutagen.flac import FLAC, Picture
             audio = FLAC(buf)
-            audio["title"]  = track.name
-            audio["artist"] = track.artist.name
-            try: audio["album"] = track.album.name
-            except: pass
-            try: audio["tracknumber"] = str(track.track_num)
-            except: pass
-            if lyrics:
-                audio["lyrics"] = lyrics
+            audio["title"]       = title
+            audio["artist"]      = artist
+            audio["album"]       = album
+            audio["tracknumber"] = track_num
+            if lyrics_plain:
+                audio["lyrics"] = lyrics_plain
             if cover_data:
                 pic = Picture()
                 pic.type = 3
                 pic.mime = "image/jpeg"
                 pic.data = cover_data
+                audio.clear_pictures()
                 audio.add_picture(pic)
-            out = _io.BytesIO()
+            out = io.BytesIO()
             audio.save(out)
             return out.getvalue()
 
-        elif "mp4" in content_type or "m4a" in content_type or "aac" in content_type:
+        elif any(x in content_type for x in ["mp4", "m4a", "aac"]):
             from mutagen.mp4 import MP4, MP4Cover
             audio = MP4(buf)
-            audio["\xa9nam"] = [track.name]
-            audio["\xa9ART"] = [track.artist.name]
-            try: audio["\xa9alb"] = [track.album.name]
-            except: pass
-            try: audio["trkn"] = [(track.track_num, 0)]
-            except: pass
-            if lyrics:
-                audio["\xa9lyr"] = [lyrics]
+            audio["\xa9nam"] = [title]
+            audio["\xa9ART"] = [artist]
+            audio["\xa9alb"] = [album]
+            audio["trkn"]    = [(int(track_num), 0)]
+            if lyrics_plain:
+                audio["\xa9lyr"] = [lyrics_plain]
             if cover_data:
                 audio["covr"] = [MP4Cover(cover_data, imageformat=MP4Cover.FORMAT_JPEG)]
-            out = _io.BytesIO()
+            out = io.BytesIO()
             audio.save(out)
             return out.getvalue()
-    except:
-        pass
+
+        elif any(x in content_type for x in ["mpeg", "mp3"]):
+            from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, APIC, USLT
+            from mutagen.id3 import ID3NoHeaderError
+            try:
+                audio = ID3(buf)
+            except ID3NoHeaderError:
+                audio = ID3()
+            audio.add(TIT2(encoding=3, text=title))
+            audio.add(TPE1(encoding=3, text=artist))
+            audio.add(TALB(encoding=3, text=album))
+            audio.add(TRCK(encoding=3, text=track_num))
+            if lyrics_plain:
+                audio.add(USLT(encoding=3, lang="spa", desc="", text=lyrics_plain))
+            if cover_data:
+                audio.add(APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=cover_data))
+            out = io.BytesIO(data)
+            audio.save(out)
+            return out.getvalue()
+
+    except Exception as e:
+        print(f"[metadata error] {e}")
     return data
+
+def get_ext(content_type: str) -> str:
+    ct = content_type.lower()
+    if "flac" in ct:  return "flac"
+    if "mp4"  in ct:  return "m4a"
+    if "m4a"  in ct:  return "m4a"
+    if "aac"  in ct:  return "m4a"
+    if "mpeg" in ct:  return "mp3"
+    if "mp3"  in ct:  return "mp3"
+    if "opus" in ct:  return "opus"
+    if "ogg"  in ct:  return "ogg"
+    return "flac"
 
 # ── Token ─────────────────────────────────────────────────────────────────────
 
@@ -213,45 +266,51 @@ def download_track(track_id):
         return jsonify({"error": err}), 401
 
     try:
-        track      = tidal.track(track_id)
-        stream_url = track.get_url()
-        r          = req_lib.get(stream_url, timeout=60)
+        track        = tidal.track(track_id)
+        stream_url   = track.get_url()
+        r            = req_lib.get(stream_url, timeout=120)
         content_type = r.headers.get("Content-Type", "audio/flac")
         audio_data   = r.content
 
-        # Portada
-        cover_data = None
-        try:
-            cover_url = track.album.image(1280)
-            cr = req_lib.get(cover_url, timeout=10)
-            if cr.status_code == 200:
-                cover_data = cr.content
-        except: pass
+        cover_data   = get_cover(track)
+        lrc_content  = None
+        plain_lyrics = None
 
-        # Letras
-        lyrics_text = None
         if do_lyrics:
-            try:
-                lyr = track.lyrics()
-                lyrics_text = getattr(lyr,"subtitles",None) or getattr(lyr,"text",None)
-            except: pass
+            lrc_content, plain_lyrics = get_lyrics(track)
 
-        # Metadatos
-        audio_data = add_metadata(audio_data, content_type, track, cover_data, lyrics_text)
+        # Metadatos embebidos
+        audio_data = add_metadata(
+            audio_data, content_type, track,
+            cover_data,
+            plain_lyrics or lrc_content
+        )
 
-        # Extensión
-        ext = "flac"
-        if "mp4" in content_type or "m4a" in content_type: ext = "m4a"
-        elif "aac" in content_type:  ext = "aac"
-        elif "mpeg" in content_type or "mp3" in content_type: ext = "mp3"
-        elif "opus" in content_type: ext = "opus"
+        ext      = get_ext(content_type)
+        basename = f"{safe_filename(track.artist.name)} - {safe_filename(track.name)}"
 
-        filename = f"{safe_filename(track.artist.name)} - {safe_filename(track.name)}.{ext}"
+        # Si hay LRC sincronizado → ZIP con audio + .lrc
+        if do_lyrics and lrc_content:
+            zipped = io.BytesIO()
+            with zipfile.ZipFile(zipped, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr(f"{basename}.{ext}", audio_data)
+                zf.writestr(f"{basename}.lrc",   lrc_content.encode("utf-8"))
+            zipped.seek(0)
+            return Response(
+                zipped.read(),
+                content_type="application/zip",
+                headers={"Content-Disposition": f'attachment; filename="{basename}.zip"'}
+            )
 
-        return Response(audio_data, content_type=content_type, headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
-            "Content-Length": str(len(audio_data)),
-        })
+        # Sin LRC → solo el audio
+        return Response(
+            audio_data,
+            content_type=content_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{basename}.{ext}"',
+                "Content-Length": str(len(audio_data)),
+            }
+        )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
