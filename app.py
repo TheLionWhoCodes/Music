@@ -5,13 +5,6 @@ import os, re, requests as req_lib
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "tidal-web-secret-2024")
 
-QUALITY_MAP = {
-    "Master": "master",
-    "HiFi": "high",
-    "High": "low",
-    "Normal": "low_96k",
-}
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def fmt_dur(sec):
@@ -33,7 +26,21 @@ def parse_tidal_url(url):
     return None, None
 
 def get_tidal_session(access_token, quality="HiFi"):
-    config = tidalapi.Config()
+    quality_options = {
+        "Master": ["master", "hi_res_lossless", "hi_res"],
+        "HiFi":   ["high", "hifi", "lossless"],
+        "High":   ["low", "high_aac"],
+        "Normal": ["low_96k", "normal"],
+    }
+    q = None
+    for name in quality_options.get(quality, ["high"]):
+        if hasattr(tidalapi.Quality, name):
+            q = getattr(tidalapi.Quality, name)
+            break
+    if q is None:
+        q = list(tidalapi.Quality)[0]
+
+    config = tidalapi.Config(quality=q)
     tidal  = tidalapi.Session(config)
     try:
         tidal.load_oauth_session(
