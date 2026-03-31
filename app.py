@@ -6,10 +6,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "tidal-web-secret-2024")
 
 QUALITY_MAP = {
-    "Master": tidalapi.Quality.master,
-    "HiFi":   tidalapi.Quality.high,
-    "High":   tidalapi.Quality.low,
-    "Normal": tidalapi.Quality.low_96k,
+    "Master": "master",
+    "HiFi": "high",
+    "High": "low",
+    "Normal": "low_96k",
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ def parse_tidal_url(url):
     return None, None
 
 def get_tidal_session(access_token, quality="HiFi"):
-    config = tidalapi.Config(quality=QUALITY_MAP.get(quality, tidalapi.Quality.high))
+    config = tidalapi.Config()
     tidal  = tidalapi.Session(config)
     try:
         tidal.load_oauth_session(
