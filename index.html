@@ -6,10 +6,10 @@
 <title>TidalGet</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:#0a0a0f; --surface:#13131a; --surface2:#1c1c27;
-    --border:#2a2a3a; --accent:#00e5ff; --accent2:#7c3aed;
-    --text:#e8e8f0; --muted:#6b6b80; --success:#00e676; --error:#ff5252; --radius:12px;
+  :root{
+    --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;
+    --border:#2a2a3a;--accent:#00e5ff;--accent2:#7c3aed;
+    --text:#e8e8f0;--muted:#6b6b80;--success:#00e676;--error:#ff5252;--radius:12px;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{
@@ -25,6 +25,7 @@
   .user-badge{display:flex;align-items:center;gap:.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:.4rem .8rem .4rem .5rem;font-size:.8rem;color:var(--muted);}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
   .dot.on{background:var(--success);box-shadow:0 0 8px var(--success);}
+
   .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;}
   .section-title{font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
   .input-row{display:flex;gap:.75rem;}
@@ -41,10 +42,25 @@
   .btn-danger:hover{background:rgba(255,82,82,.1);}
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;}
 
+  /* Plan badge */
+  .plan-badge{
+    display:inline-flex;align-items:center;gap:.4rem;
+    padding:.3rem .7rem;border-radius:100px;font-size:.75rem;font-weight:600;
+    margin-top:.6rem;
+  }
+  .plan-badge.hifi{background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.3);}
+  .plan-badge.hifiplus{background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.4);}
+  .plan-badge.premium{background:rgba(0,230,118,.1);color:var(--success);border:1px solid rgba(0,230,118,.3);}
+  .plan-badge.basic{background:rgba(107,107,128,.1);color:var(--muted);border:1px solid var(--border);}
+
+  .dl-format-info{
+    display:flex;align-items:center;gap:.5rem;
+    margin-top:.5rem;font-size:.78rem;color:var(--muted);
+  }
+  .dl-format-info strong{color:var(--text);}
+
   .options-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.75rem 0;border-top:1px solid var(--border);margin-top:.75rem;}
   .opt-label{font-size:.8rem;color:var(--muted);}
-  select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:.5rem .75rem;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;cursor:pointer;}
-  select:focus{border-color:var(--accent);}
   .toggle-wrap{display:flex;align-items:center;gap:.5rem;cursor:pointer;}
   .toggle{position:relative;width:36px;height:20px;background:var(--border);border-radius:100px;transition:background .2s;}
   .toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:all .2s;}
@@ -74,14 +90,8 @@
   .track-title{font-size:.88rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .track-sub{font-size:.73rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .track-dur{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);flex-shrink:0;}
-
-  /* Botones de descarga por track */
   .track-btns{display:flex;gap:.4rem;flex-shrink:0;}
-  .dl-btn{
-    background:transparent;border:1px solid var(--border);color:var(--muted);
-    border-radius:6px;padding:.28rem .55rem;font-size:.72rem;cursor:pointer;transition:all .15s;
-    white-space:nowrap;
-  }
+  .dl-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:.28rem .55rem;font-size:.72rem;cursor:pointer;transition:all .15s;white-space:nowrap;}
   .dl-btn.audio:hover{border-color:var(--accent);color:var(--accent);}
   .dl-btn.lrc:hover{border-color:var(--accent2);color:var(--accent2);}
   .dl-btn.loading{animation:pulse 1s infinite;}
@@ -90,13 +100,7 @@
   .dl-btn.done{color:var(--success);border-color:var(--success);}
   .dl-btn.err{color:var(--error);border-color:var(--error);}
 
-  /* Barra inferior */
-  .dl-bar{
-    position:fixed;bottom:0;left:0;right:0;
-    background:var(--surface);border-top:1px solid var(--border);
-    padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;
-    gap:1rem;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:100;
-  }
+  .dl-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:100;}
   .dl-bar.visible{transform:translateY(0);}
   .dl-count strong{color:var(--accent);font-family:'Space Mono',monospace;}
   .bar-btns{display:flex;gap:.6rem;}
@@ -138,10 +142,16 @@
       </div>
     </div>
     <div id="token-logged" class="hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
         <div>
-          <div style="font-weight:600" id="logged-name">Usuario Tidal</div>
-          <div class="help-text" style="margin-top:2px">Sesión activa ✓</div>
+          <div style="font-weight:600;font-size:.95rem" id="logged-name">Usuario Tidal</div>
+          <div id="plan-badge" class="plan-badge basic" style="margin-top:.4rem">
+            <span id="plan-icon">⚪</span>
+            <span id="plan-text">Básico</span>
+          </div>
+          <div class="dl-format-info">
+            Descargará en: <strong id="dl-format">MP3</strong>
+          </div>
         </div>
         <button class="btn btn-danger" onclick="clearToken()">Salir</button>
       </div>
@@ -156,13 +166,6 @@
       <button class="btn btn-primary" id="search-btn" onclick="searchURL()">Buscar</button>
     </div>
     <div class="options-row">
-      <span class="opt-label">Calidad:</span>
-      <select id="quality-select">
-        <option value="Master">🎵 Master (HiRes)</option>
-        <option value="HiFi" selected>🎶 HiFi (FLAC)</option>
-        <option value="High">🔊 High (AAC 320)</option>
-        <option value="Normal">📻 Normal (AAC 96)</option>
-      </select>
       <div class="toggle-wrap" onclick="toggleLyrics()">
         <div class="toggle on" id="lyr-toggle"></div>
         <span class="toggle-label" id="lyr-label">Letras activadas</span>
@@ -204,12 +207,19 @@
 <div class="toast" id="toast"></div>
 
 <script>
-let tracks=[], selected=new Set(), lyricsOn=true, allSel=false;
+let tracks=[], selected=new Set(), lyricsOn=true, allSel=false, userPlan='Básico', userExt='mp3';
+
+const PLAN_META = {
+  "HiFi Plus": {cls:"hifiplus", icon:"💜", label:"HiFi Plus", fmt:"FLAC 24bit"},
+  "HiFi":      {cls:"hifi",    icon:"💎", label:"HiFi",     fmt:"FLAC 16bit"},
+  "Premium":   {cls:"premium", icon:"🟢", label:"Premium",  fmt:"AAC 320kbps"},
+  "Básico":    {cls:"basic",   icon:"⚪", label:"Básico",   fmt:"AAC 96kbps"},
+};
 
 async function init(){
   try{
     const d=await(await fetch('/api/token/status')).json();
-    if(d.logged_in) setLoggedIn(d.user);
+    if(d.logged_in) setLoggedIn(d.user, d.plan, d.ext);
   }catch{}
 }
 
@@ -220,10 +230,10 @@ async function submitToken(){
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Verificando...';
   try{
     const d=await(await fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})).json();
-    if(d.ok){setLoggedIn(d.user);toast('Sesión iniciada ✓','success');}
+    if(d.ok){ setLoggedIn(d.user, d.plan, d.ext); toast(`Conectado · ${d.plan}`,'success'); }
     else toast(d.error||'Token inválido','error');
-  }catch{toast('Error de conexión','error');}
-  finally{btn.disabled=false;btn.innerHTML='Conectar';}
+  }catch{ toast('Error de conexión','error'); }
+  finally{ btn.disabled=false; btn.innerHTML='Conectar'; }
 }
 
 async function clearToken(){
@@ -231,12 +241,23 @@ async function clearToken(){
   setLoggedOut(); toast('Sesión cerrada');
 }
 
-function setLoggedIn(name){
+function setLoggedIn(name, plan, ext){
+  userPlan = plan || 'Básico';
+  userExt  = ext  || 'mp3';
+  const meta = PLAN_META[userPlan] || PLAN_META['Básico'];
+
   document.getElementById('token-form').classList.add('hidden');
   document.getElementById('token-logged').classList.remove('hidden');
-  document.getElementById('logged-name').textContent=name;
-  document.getElementById('user-name').textContent=name;
+  document.getElementById('logged-name').textContent = name;
+  document.getElementById('user-name').textContent   = name;
   document.getElementById('dot').classList.add('on');
+
+  const badge = document.getElementById('plan-badge');
+  badge.className = `plan-badge ${meta.cls}`;
+  document.getElementById('plan-icon').textContent = meta.icon;
+  document.getElementById('plan-text').textContent = meta.label;
+  document.getElementById('dl-format').textContent = meta.fmt;
+
   document.getElementById('url-section').classList.remove('hidden');
 }
 
@@ -264,8 +285,8 @@ async function searchURL(){
   try{
     const d=await(await fetch('/api/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})).json();
     if(d.error) toast(d.error,'error'); else renderResults(d);
-  }catch{toast('Error al buscar','error');}
-  finally{btn.disabled=false;btn.innerHTML='Buscar';}
+  }catch{ toast('Error al buscar','error'); }
+  finally{ btn.disabled=false; btn.innerHTML='Buscar'; }
 }
 
 function renderResults(data){
@@ -280,6 +301,7 @@ function renderResults(data){
   document.getElementById('results-meta').innerHTML=
     `<strong>${tracks.length}</strong> canción${tracks.length!==1?'es':''}`;
 
+  const ext = userExt.toUpperCase();
   document.getElementById('track-list').innerHTML=tracks.map((t,i)=>`
     <div class="track-item" id="ti-${i}" onclick="toggleTrack(${i})">
       <div class="chk" id="chk-${i}"></div>
@@ -290,8 +312,8 @@ function renderResults(data){
       </div>
       <div class="track-dur">${t.duration}</div>
       <div class="track-btns">
-        <button class="dl-btn audio" id="ab-${i}" onclick="event.stopPropagation();dlAudio(${i})" title="Descargar audio">⬇ Audio</button>
-        <button class="dl-btn lrc"   id="lb-${i}" onclick="event.stopPropagation();dlLRC(${i})"   title="Descargar letras">⬇ LRC</button>
+        <button class="dl-btn audio" id="ab-${i}" onclick="event.stopPropagation();dlAudio(${i})">⬇ ${ext}</button>
+        <button class="dl-btn lrc"   id="lb-${i}" onclick="event.stopPropagation();dlLRC(${i})">⬇ LRC</button>
       </div>
     </div>`).join('');
 
@@ -323,17 +345,14 @@ function updateBar(){
   document.getElementById('dl-bar').classList.toggle('visible',selected.size>0);
 }
 
-// ── Descarga individual ────────────────────────────────────────────────────
-
 function dlAudio(i){
   const t=tracks[i], btn=document.getElementById(`ab-${i}`);
-  const quality=document.getElementById('quality-select').value;
   btn.className='dl-btn audio loading'; btn.textContent='⟳';
   const a=document.createElement('a');
-  a.href=`/api/download/${t.id}?quality=${quality}&lyrics=${lyricsOn}`;
+  a.href=`/api/download/${t.id}?lyrics=${lyricsOn}`;
   a.download=`${t.artist} - ${t.title}`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>{btn.className='dl-btn audio done';btn.textContent='✓ Audio';},1500);
+  setTimeout(()=>{btn.className='dl-btn audio done';btn.textContent=`✓ ${userExt.toUpperCase()}`;},1500);
   toast(`⬇ ${t.title}`,'success');
 }
 
@@ -348,8 +367,6 @@ function dlLRC(i){
   toast(`⬇ LRC: ${t.title}`,'success');
 }
 
-// ── Descarga masiva ────────────────────────────────────────────────────────
-
 async function downloadSelectedAudio(){
   const idx=Array.from(selected);
   toast(`Descargando ${idx.length} audio${idx.length>1?'s':''}...`,'success');
@@ -363,7 +380,6 @@ async function downloadSelectedLRC(){
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
 let toastTimer;
 function toast(msg,type=''){
   const el=document.getElementById('toast');
