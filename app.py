@@ -218,23 +218,48 @@ def download_audio(track_id):
 
     do_lyrics = request.args.get("lyrics", "true").lower() == "true"
 
-    work_dir = tempfile.mkdtemp(prefix="tidal_")
+    work_dir     = tempfile.mkdtemp(prefix="tidal_")
+    home_cfg     = os.path.expanduser("~/.tidal-dl.json")
+    backup_cfg   = home_cfg + ".bak"
+    restored     = False
+
     try:
-        cfg_path = write_tidal_dl_config(token, work_dir, quality, do_lyrics)
+        # Backup del config global si existe
+        if os.path.exists(home_cfg):
+            shutil.copy2(home_cfg, backup_cfg)
+
+        # Escribir config con token del usuario
+        cfg = {
+            "downloadPath": work_dir,
+            "quality":      quality,
+            "addLyrics":    do_lyrics,
+            "lyricFile":    do_lyrics,
+            "usePlaylistFolder": False,
+            "albumFolderFormat": "",
+            "trackFileFormat":   "{ArtistName} - {TrackTitle}",
+            "accessToken":  token,
+            "tokenType":    "Bearer",
+        }
+        with open(home_cfg, "w") as f:
+            json.dump(cfg, f)
 
         track_url = f"https://tidal.com/browse/track/{track_id}"
         result = subprocess.run(
             ["tidal-dl", "-l", track_url, "-q", quality],
             capture_output=True, text=True, timeout=120,
-            env={**os.environ, "TIDAL_DL_CONFIG": cfg_path},
             cwd=work_dir
         )
 
+        # Restaurar config global
+        if os.path.exists(backup_cfg):
+            shutil.copy2(backup_cfg, home_cfg)
+            os.remove(backup_cfg)
+        restored = True
+
         audio_path = find_audio_file(work_dir)
         if not audio_path:
-            print(f"[tidal-dl stdout] {result.stdout}")
-            print(f"[tidal-dl stderr] {result.stderr}")
-            return jsonify({"error": "No se pudo descargar la canción. Revisa el token."}), 500
+            print(f"[stdout] {result.stdout}\n[stderr] {result.stderr}")
+            return jsonify({"error": f"No se pudo descargar. Error: {result.stderr[-300:]}"}), 500
 
         ext      = os.path.splitext(audio_path)[1].lower()
         basename = os.path.splitext(os.path.basename(audio_path))[0]
@@ -260,6 +285,10 @@ def download_audio(track_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
+        if not restored and os.path.exists(backup_cfg):
+            shutil.copy2(backup_cfg, home_cfg)
+            try: os.remove(backup_cfg)
+            except: pass
         try: shutil.rmtree(work_dir, ignore_errors=True)
         except: pass
 
@@ -271,17 +300,40 @@ def download_lrc(track_id):
     quality = session.get("quality", "Normal")
     if not token: return jsonify({"error": "Sin sesión activa"}), 401
 
-    work_dir = tempfile.mkdtemp(prefix="tidal_lrc_")
+    work_dir   = tempfile.mkdtemp(prefix="tidal_lrc_")
+    home_cfg   = os.path.expanduser("~/.tidal-dl.json")
+    backup_cfg = home_cfg + ".bak"
+    restored   = False
+
     try:
-        cfg_path = write_tidal_dl_config(token, work_dir, quality, lyrics=True)
+        if os.path.exists(home_cfg):
+            shutil.copy2(home_cfg, backup_cfg)
+
+        cfg = {
+            "downloadPath": work_dir,
+            "quality":      quality,
+            "addLyrics":    True,
+            "lyricFile":    True,
+            "usePlaylistFolder": False,
+            "albumFolderFormat": "",
+            "trackFileFormat":   "{ArtistName} - {TrackTitle}",
+            "accessToken":  token,
+            "tokenType":    "Bearer",
+        }
+        with open(home_cfg, "w") as f:
+            json.dump(cfg, f)
 
         track_url = f"https://tidal.com/browse/track/{track_id}"
         subprocess.run(
             ["tidal-dl", "-l", track_url, "-q", quality],
             capture_output=True, text=True, timeout=120,
-            env={**os.environ, "TIDAL_DL_CONFIG": cfg_path},
             cwd=work_dir
         )
+
+        if os.path.exists(backup_cfg):
+            shutil.copy2(backup_cfg, home_cfg)
+            os.remove(backup_cfg)
+        restored = True
 
         lrc_path = find_lrc_file(work_dir)
         if not lrc_path:
@@ -299,6 +351,10 @@ def download_lrc(track_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
+        if not restored and os.path.exists(backup_cfg):
+            shutil.copy2(backup_cfg, home_cfg)
+            try: os.remove(backup_cfg)
+            except: pass
         try: shutil.rmtree(work_dir, ignore_errors=True)
         except: pass
 
