@@ -2,394 +2,384 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TidalGet</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;
-    --border:#2a2a3a;--accent:#00e5ff;--accent2:#7c3aed;
-    --text:#e8e8f0;--muted:#6b6b80;--success:#00e676;--error:#ff5252;--radius:12px;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{
-    background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,229,255,.07) 0%,transparent 60%),
-      radial-gradient(ellipse 40% 30% at 80% 80%,rgba(124,58,237,.05) 0%,transparent 50%);
-  }
-  .app{max-width:820px;margin:0 auto;padding:2rem 1.5rem 5rem;}
-  header{display:flex;align-items:center;justify-content:space-between;padding:1.5rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem;}
-  .logo{font-family:'Space Mono',monospace;font-size:1.4rem;font-weight:700;letter-spacing:-1px;}
-  .logo span{color:var(--accent);}
-  .user-badge{display:flex;align-items:center;gap:.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:.4rem .8rem .4rem .5rem;font-size:.8rem;color:var(--muted);}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
-  .dot.on{background:var(--success);box-shadow:0 0 8px var(--success);}
+:root{
+  --bg:#0a0a0f;--s1:#13131a;--s2:#1c1c27;--bd:#2a2a3a;
+  --ac:#00e5ff;--ac2:#7c3aed;--tx:#e8e8f0;--mu:#6b6b80;
+  --ok:#00e676;--er:#ff5252;--r:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,229,255,.07) 0%,transparent 60%)}
+.app{max-width:800px;margin:0 auto;padding:2rem 1.5rem 5rem}
 
-  .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;}
-  .section-title{font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
-  .input-row{display:flex;gap:.75rem;}
-  input[type="text"],input[type="password"]{
-    flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
-    color:var(--text);padding:.75rem 1rem;font-family:'Space Mono',monospace;font-size:.78rem;outline:none;transition:border-color .2s;
-  }
-  input:focus{border-color:var(--accent);}
-  input::placeholder{color:var(--muted);}
-  .btn{padding:.75rem 1.25rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap;}
-  .btn-primary{background:var(--accent);color:#000;}
-  .btn-primary:hover{background:#33eaff;transform:translateY(-1px);}
-  .btn-danger{background:transparent;border:1px solid var(--error);color:var(--error);}
-  .btn-danger:hover{background:rgba(255,82,82,.1);}
-  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;}
+header{display:flex;align-items:center;justify-content:space-between;
+  padding:1.5rem 0 2rem;border-bottom:1px solid var(--bd);margin-bottom:2rem}
+.logo{font-family:'Space Mono',monospace;font-size:1.4rem;font-weight:700;letter-spacing:-1px}
+.logo span{color:var(--ac)}
+.badge{display:flex;align-items:center;gap:.5rem;background:var(--s2);
+  border:1px solid var(--bd);border-radius:100px;padding:.35rem .75rem .35rem .5rem;
+  font-size:.8rem;color:var(--mu)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}
+.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 
-  /* Plan badge */
-  .plan-badge{
-    display:inline-flex;align-items:center;gap:.4rem;
-    padding:.3rem .7rem;border-radius:100px;font-size:.75rem;font-weight:600;
-    margin-top:.6rem;
-  }
-  .plan-badge.hifi{background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.3);}
-  .plan-badge.hifiplus{background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.4);}
-  .plan-badge.premium{background:rgba(0,230,118,.1);color:var(--success);border:1px solid rgba(0,230,118,.3);}
-  .plan-badge.basic{background:rgba(107,107,128,.1);color:var(--muted);border:1px solid var(--border);}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);
+  padding:1.5rem;margin-bottom:1.25rem}
+.label{font-family:'Space Mono',monospace;font-size:.68rem;letter-spacing:2px;
+  text-transform:uppercase;color:var(--mu);margin-bottom:.9rem}
+.row{display:flex;gap:.75rem}
+input{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:8px;
+  color:var(--tx);padding:.72rem 1rem;font-family:'Space Mono',monospace;
+  font-size:.78rem;outline:none;transition:border-color .2s}
+input:focus{border-color:var(--ac)}
+input::placeholder{color:var(--mu)}
 
-  .dl-format-info{
-    display:flex;align-items:center;gap:.5rem;
-    margin-top:.5rem;font-size:.78rem;color:var(--muted);
-  }
-  .dl-format-info strong{color:var(--text);}
+.btn{padding:.72rem 1.2rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;
+  font-size:.88rem;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap}
+.btn-ac{background:var(--ac);color:#000}
+.btn-ac:hover{background:#33eaff;transform:translateY(-1px)}
+.btn-ac2{background:var(--ac2);color:#fff}
+.btn-ac2:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.btn-out{background:transparent;border:1px solid var(--er);color:var(--er)}
+.btn-out:hover{background:rgba(255,82,82,.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
 
-  .options-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.75rem 0;border-top:1px solid var(--border);margin-top:.75rem;}
-  .opt-label{font-size:.8rem;color:var(--muted);}
-  .toggle-wrap{display:flex;align-items:center;gap:.5rem;cursor:pointer;}
-  .toggle{position:relative;width:36px;height:20px;background:var(--border);border-radius:100px;transition:background .2s;}
-  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:all .2s;}
-  .toggle.on{background:var(--accent);}
-  .toggle.on::after{left:19px;background:#000;}
-  .toggle-label{font-size:.83rem;color:var(--muted);user-select:none;}
+.plan-tag{display:inline-flex;align-items:center;gap:.35rem;
+  padding:.28rem .65rem;border-radius:100px;font-size:.75rem;font-weight:600;margin-top:.5rem}
+.plan-hi{background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.35)}
+.plan-hf{background:rgba(0,229,255,.1);color:var(--ac);border:1px solid rgba(0,229,255,.3)}
+.plan-pr{background:rgba(0,230,118,.1);color:var(--ok);border:1px solid rgba(0,230,118,.3)}
+.plan-ba{background:rgba(107,107,128,.1);color:var(--mu);border:1px solid var(--bd)}
+.fmt-info{font-size:.75rem;color:var(--mu);margin-top:.4rem}
+.fmt-info b{color:var(--tx)}
 
-  .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
-  .results-meta{font-size:.85rem;color:var(--muted);}
-  .results-meta strong{color:var(--text);}
-  .cover-row{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;}
-  .cover-img{width:64px;height:64px;border-radius:8px;object-fit:cover;}
-  .cover-title{font-weight:700;font-size:1rem;}
-  .cover-artist{color:var(--muted);font-size:.85rem;margin-top:2px;}
+.opts{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  padding:.7rem 0;border-top:1px solid var(--bd);margin-top:.75rem}
+.tog-wrap{display:flex;align-items:center;gap:.5rem;cursor:pointer;user-select:none}
+.tog{position:relative;width:36px;height:20px;background:var(--bd);
+  border-radius:100px;transition:background .2s;flex-shrink:0}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;
+  border-radius:50%;background:var(--mu);transition:all .2s}
+.tog.on{background:var(--ac)}
+.tog.on::after{left:19px;background:#000}
+.tog-lbl{font-size:.83rem;color:var(--mu)}
 
-  .select-all-row{display:flex;align-items:center;gap:.5rem;padding:.5rem 0;margin-bottom:.5rem;border-bottom:1px solid var(--border);font-size:.83rem;color:var(--muted);cursor:pointer;}
-  .select-all-row:hover{color:var(--text);}
-  .track-list{display:flex;flex-direction:column;gap:2px;}
-  .track-item{display:flex;align-items:center;gap:.75rem;padding:.65rem .75rem;border-radius:8px;transition:background .15s;cursor:pointer;}
-  .track-item:hover{background:var(--surface2);}
-  .track-item.selected{background:rgba(0,229,255,.06);}
-  .chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
-  .track-item.selected .chk{background:var(--accent);border-color:var(--accent);}
-  .track-item.selected .chk::after{content:'✓';font-size:10px;color:#000;font-weight:700;}
-  .track-num{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);width:22px;text-align:right;flex-shrink:0;}
-  .track-info{flex:1;min-width:0;}
-  .track-title{font-size:.88rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .track-sub{font-size:.73rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .track-dur{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);flex-shrink:0;}
-  .track-btns{display:flex;gap:.4rem;flex-shrink:0;}
-  .dl-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:.28rem .55rem;font-size:.72rem;cursor:pointer;transition:all .15s;white-space:nowrap;}
-  .dl-btn.audio:hover{border-color:var(--accent);color:var(--accent);}
-  .dl-btn.lrc:hover{border-color:var(--accent2);color:var(--accent2);}
-  .dl-btn.loading{animation:pulse 1s infinite;}
-  .dl-btn.audio.loading{color:var(--accent);border-color:var(--accent);}
-  .dl-btn.lrc.loading{color:var(--accent2);border-color:var(--accent2);}
-  .dl-btn.done{color:var(--success);border-color:var(--success);}
-  .dl-btn.err{color:var(--error);border-color:var(--error);}
+.res-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.res-meta{font-size:.85rem;color:var(--mu)}
+.res-meta b{color:var(--tx)}
+.cover-row{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem}
+.cover-img{width:64px;height:64px;border-radius:8px;object-fit:cover}
+.cover-t{font-weight:700;font-size:1rem}
+.cover-a{color:var(--mu);font-size:.85rem;margin-top:2px}
 
-  .dl-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:100;}
-  .dl-bar.visible{transform:translateY(0);}
-  .dl-count strong{color:var(--accent);font-family:'Space Mono',monospace;}
-  .bar-btns{display:flex;gap:.6rem;}
+.sel-all{display:flex;align-items:center;gap:.5rem;padding:.5rem 0;
+  margin-bottom:.4rem;border-bottom:1px solid var(--bd);
+  font-size:.82rem;color:var(--mu);cursor:pointer}
+.sel-all:hover{color:var(--tx)}
+.tlist{display:flex;flex-direction:column;gap:2px}
+.ti{display:flex;align-items:center;gap:.7rem;padding:.6rem .7rem;
+  border-radius:8px;transition:background .15s;cursor:pointer}
+.ti:hover{background:var(--s2)}
+.ti.sel{background:rgba(0,229,255,.06)}
+.chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--bd);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ti.sel .chk{background:var(--ac);border-color:var(--ac)}
+.ti.sel .chk::after{content:'✓';font-size:10px;color:#000;font-weight:700}
+.tnum{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--mu);
+  width:20px;text-align:right;flex-shrink:0}
+.tinf{flex:1;min-width:0}
+.ttl{font-size:.87rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tsub{font-size:.72rem;color:var(--mu);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdur{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--mu);flex-shrink:0}
+.tbtns{display:flex;gap:.35rem;flex-shrink:0}
+.tb{background:transparent;border:1px solid var(--bd);color:var(--mu);
+  border-radius:6px;padding:.25rem .5rem;font-size:.7rem;cursor:pointer;transition:all .15s}
+.tb.a:hover{border-color:var(--ac);color:var(--ac)}
+.tb.l:hover{border-color:var(--ac2);color:var(--ac2)}
+.tb.spin{animation:pulse 1s infinite}
+.tb.a.spin{color:var(--ac);border-color:var(--ac)}
+.tb.l.spin{color:var(--ac2);border-color:var(--ac2)}
+.tb.done{color:var(--ok);border-color:var(--ok)}
+.tb.fail{color:var(--er);border-color:var(--er)}
 
-  .toast{position:fixed;top:1.5rem;right:1.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.8rem 1.1rem;font-size:.85rem;z-index:999;opacity:0;transform:translateX(20px);transition:all .25s;max-width:280px;}
-  .toast.show{opacity:1;transform:translateX(0);}
-  .toast.success{border-color:var(--success);color:var(--success);}
-  .toast.error{border-color:var(--error);color:var(--error);}
-  .hidden{display:none!important;}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-  .help-text{font-size:.75rem;color:var(--muted);margin-top:.6rem;line-height:1.6;}
-  code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:.72rem;}
+.dlbar{position:fixed;bottom:0;left:0;right:0;background:var(--s1);
+  border-top:1px solid var(--bd);padding:1rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:100}
+.dlbar.on{transform:translateY(0)}
+.dlbar-cnt b{color:var(--ac);font-family:'Space Mono',monospace}
+.dlbar-btns{display:flex;gap:.6rem}
+
+.toast{position:fixed;top:1.25rem;right:1.25rem;background:var(--s2);
+  border:1px solid var(--bd);border-radius:var(--r);padding:.75rem 1rem;
+  font-size:.83rem;z-index:999;opacity:0;transform:translateX(16px);
+  transition:all .22s;max-width:270px}
+.toast.on{opacity:1;transform:translateX(0)}
+.toast.ok{border-color:var(--ok);color:var(--ok)}
+.toast.er{border-color:var(--er);color:var(--er)}
+
+.hidden{display:none!important}
+.sp{display:inline-block;width:13px;height:13px;border:2px solid var(--bd);
+  border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;
+  vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.help{font-size:.73rem;color:var(--mu);margin-top:.6rem;line-height:1.6}
+code{background:var(--s2);padding:1px 5px;border-radius:4px;font-size:.7rem}
 </style>
 </head>
 <body>
 <div class="app">
 
-  <header>
-    <div class="logo">Tidal<span>Get</span></div>
-    <div class="user-badge">
-      <div class="dot" id="dot"></div>
-      <span id="user-name">Sin sesión</span>
-    </div>
-  </header>
+<header>
+  <div class="logo">Tidal<span>Get</span></div>
+  <div class="badge"><div class="dot" id="dot"></div><span id="uname">Sin sesión</span></div>
+</header>
 
-  <!-- Token -->
-  <div class="section">
-    <div class="section-title">🔑 Token de Tidal</div>
-    <div id="token-form">
-      <div class="input-row">
-        <input type="password" id="token-input" placeholder="Pega tu accessToken aquí..." />
-        <button class="btn btn-primary" onclick="submitToken()">Conectar</button>
-      </div>
-      <div class="help-text">
-        Tu token solo existe en tu sesión, no se guarda en ningún servidor.<br>
-        ¿Cómo obtenerlo? <strong>tidal.com</strong> → F12 → Application → Local Storage → <code>access_token</code>
-      </div>
+<!-- Token -->
+<div class="card">
+  <div class="label">🔑 Token de Tidal</div>
+  <div id="tf">
+    <div class="row">
+      <input type="password" id="ti" placeholder="Pega tu accessToken aquí...">
+      <button class="btn btn-ac" onclick="doLogin()">Conectar</button>
     </div>
-    <div id="token-logged" class="hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
-        <div>
-          <div style="font-weight:600;font-size:.95rem" id="logged-name">Usuario Tidal</div>
-          <div id="plan-badge" class="plan-badge basic" style="margin-top:.4rem">
-            <span id="plan-icon">⚪</span>
-            <span id="plan-text">Básico</span>
-          </div>
-          <div class="dl-format-info">
-            Descargará en: <strong id="dl-format">MP3</strong>
-          </div>
-        </div>
-        <button class="btn btn-danger" onclick="clearToken()">Salir</button>
-      </div>
-    </div>
+    <div class="help">Token solo existe en tu sesión, no se guarda en ningún servidor.<br>
+    Cómo obtenerlo: <b>tidal.com</b> → F12 → Application → Local Storage → <code>access_token</code></div>
   </div>
-
-  <!-- URL + Opciones -->
-  <div class="section hidden" id="url-section">
-    <div class="section-title">🔗 URL de Tidal</div>
-    <div class="input-row">
-      <input type="text" id="url-input" placeholder="https://tidal.com/browse/track/..." />
-      <button class="btn btn-primary" id="search-btn" onclick="searchURL()">Buscar</button>
-    </div>
-    <div class="options-row">
-      <div class="toggle-wrap" onclick="toggleLyrics()">
-        <div class="toggle on" id="lyr-toggle"></div>
-        <span class="toggle-label" id="lyr-label">Letras activadas</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Resultados -->
-  <div class="section hidden" id="results-section">
-    <div class="results-header">
-      <div class="section-title" style="margin:0">📋 Resultados</div>
-      <div class="results-meta" id="results-meta"></div>
-    </div>
-    <div id="cover-row" class="cover-row hidden">
-      <img id="cover-img" class="cover-img" src="" alt="">
+  <div id="tl" class="hidden">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
       <div>
-        <div class="cover-title" id="cover-title"></div>
-        <div class="cover-artist" id="cover-artist"></div>
+        <div style="font-weight:700;font-size:.95rem" id="lname"></div>
+        <div class="plan-tag plan-ba" id="ptag"></div>
+        <div class="fmt-info">Descargará en: <b id="fmtlbl"></b></div>
       </div>
+      <button class="btn btn-out" onclick="doLogout()">Salir</button>
     </div>
-    <div class="select-all-row" onclick="toggleSelectAll()">
-      <div class="chk" id="all-chk"></div>
-      <span id="all-label">Seleccionar todo</span>
-    </div>
-    <div class="track-list" id="track-list"></div>
   </div>
+</div>
+
+<!-- URL -->
+<div class="card hidden" id="urlcard">
+  <div class="label">🔗 URL de Tidal</div>
+  <div class="row">
+    <input type="text" id="urli" placeholder="https://tidal.com/browse/track/...">
+    <button class="btn btn-ac" id="sbtn" onclick="doSearch()">Buscar</button>
+  </div>
+  <div class="opts">
+    <div class="tog-wrap" onclick="togLyrics()">
+      <div class="tog on" id="ltog"></div>
+      <span class="tog-lbl" id="llbl">Letras activadas</span>
+    </div>
+  </div>
+</div>
+
+<!-- Resultados -->
+<div class="card hidden" id="rescard">
+  <div class="res-hdr">
+    <div class="label" style="margin:0">📋 Resultados</div>
+    <div class="res-meta" id="rmeta"></div>
+  </div>
+  <div class="cover-row hidden" id="crow">
+    <img class="cover-img" id="cimg" src="" alt="">
+    <div><div class="cover-t" id="ctitle"></div><div class="cover-a" id="cartist"></div></div>
+  </div>
+  <div class="sel-all" onclick="togAll()">
+    <div class="chk" id="achk"></div><span id="albl">Seleccionar todo</span>
+  </div>
+  <div class="tlist" id="tlist"></div>
+</div>
 
 </div>
 
 <!-- Barra inferior -->
-<div class="dl-bar" id="dl-bar">
-  <div class="dl-count"><strong id="dl-count">0</strong> seleccionadas</div>
-  <div class="bar-btns">
-    <button class="btn btn-primary" onclick="downloadSelectedAudio()">⬇ Audio</button>
-    <button class="btn" style="background:var(--accent2);color:#fff" onclick="downloadSelectedLRC()">⬇ LRC</button>
+<div class="dlbar" id="dlbar">
+  <div class="dlbar-cnt"><b id="dlcnt">0</b> seleccionadas</div>
+  <div class="dlbar-btns">
+    <button class="btn btn-ac" onclick="dlSelAudio()">⬇ Audio</button>
+    <button class="btn btn-ac2" onclick="dlSelLRC()">⬇ LRC</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-let tracks=[], selected=new Set(), lyricsOn=true, allSel=false, userPlan='Básico', userExt='mp3';
+let tracks=[], sel=new Set(), lyr=true, allS=false, plan='', ext='mp3';
 
-const PLAN_META = {
-  "HiFi Plus": {cls:"hifiplus", icon:"💜", label:"HiFi Plus", fmt:"FLAC 24bit"},
-  "HiFi":      {cls:"hifi",    icon:"💎", label:"HiFi",     fmt:"FLAC 16bit"},
-  "Premium":   {cls:"premium", icon:"🟢", label:"Premium",  fmt:"AAC 320kbps"},
-  "Básico":    {cls:"basic",   icon:"⚪", label:"Básico",   fmt:"AAC 96kbps"},
+const PLANS = {
+  "HiFi Plus 🎵": {cls:"plan-hi", fmt:"FLAC 24bit (Master)"},
+  "HiFi 💎":      {cls:"plan-hf", fmt:"FLAC 16bit"},
+  "Premium 🟢":   {cls:"plan-pr", fmt:"AAC 320kbps"},
+  "Básico ⚪":    {cls:"plan-ba", fmt:"AAC 96kbps"},
 };
 
 async function init(){
   try{
     const d=await(await fetch('/api/token/status')).json();
-    if(d.logged_in) setLoggedIn(d.user, d.plan, d.ext);
+    if(d.logged_in) applyLogin(d);
   }catch{}
 }
 
-async function submitToken(){
-  const token=document.getElementById('token-input').value.trim();
-  if(!token) return toast('Pega tu token primero','error');
-  const btn=document.querySelector('#token-form .btn-primary');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Verificando...';
+async function doLogin(){
+  const token=document.getElementById('ti').value.trim();
+  if(!token) return toast('Pega tu token primero','er');
+  const btn=document.querySelector('#tf .btn-ac');
+  btn.disabled=true; btn.innerHTML='<span class="sp"></span>Verificando...';
   try{
-    const d=await(await fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})).json();
-    if(d.ok){ setLoggedIn(d.user, d.plan, d.ext); toast(`Conectado · ${d.plan}`,'success'); }
-    else toast(d.error||'Token inválido','error');
-  }catch{ toast('Error de conexión','error'); }
+    const d=await(await fetch('/api/token',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})).json();
+    if(d.ok){ applyLogin(d); toast('Conectado · '+d.plan,'ok'); }
+    else toast(d.error||'Token inválido','er');
+  }catch{ toast('Error de conexión','er'); }
   finally{ btn.disabled=false; btn.innerHTML='Conectar'; }
 }
 
-async function clearToken(){
+async function doLogout(){
   await fetch('/api/token',{method:'DELETE'});
-  setLoggedOut(); toast('Sesión cerrada');
-}
-
-function setLoggedIn(name, plan, ext){
-  userPlan = plan || 'Básico';
-  userExt  = ext  || 'mp3';
-  const meta = PLAN_META[userPlan] || PLAN_META['Básico'];
-
-  document.getElementById('token-form').classList.add('hidden');
-  document.getElementById('token-logged').classList.remove('hidden');
-  document.getElementById('logged-name').textContent = name;
-  document.getElementById('user-name').textContent   = name;
-  document.getElementById('dot').classList.add('on');
-
-  const badge = document.getElementById('plan-badge');
-  badge.className = `plan-badge ${meta.cls}`;
-  document.getElementById('plan-icon').textContent = meta.icon;
-  document.getElementById('plan-text').textContent = meta.label;
-  document.getElementById('dl-format').textContent = meta.fmt;
-
-  document.getElementById('url-section').classList.remove('hidden');
-}
-
-function setLoggedOut(){
-  document.getElementById('token-form').classList.remove('hidden');
-  document.getElementById('token-logged').classList.add('hidden');
-  document.getElementById('token-input').value='';
-  document.getElementById('user-name').textContent='Sin sesión';
+  document.getElementById('tf').classList.remove('hidden');
+  document.getElementById('tl').classList.add('hidden');
+  document.getElementById('ti').value='';
+  document.getElementById('uname').textContent='Sin sesión';
   document.getElementById('dot').classList.remove('on');
-  document.getElementById('url-section').classList.add('hidden');
-  document.getElementById('results-section').classList.add('hidden');
+  document.getElementById('urlcard').classList.add('hidden');
+  document.getElementById('rescard').classList.add('hidden');
+  toast('Sesión cerrada');
 }
 
-function toggleLyrics(){
-  lyricsOn=!lyricsOn;
-  document.getElementById('lyr-toggle').classList.toggle('on',lyricsOn);
-  document.getElementById('lyr-label').textContent=lyricsOn?'Letras activadas':'Letras desactivadas';
+function applyLogin(d){
+  plan=d.plan||'Básico ⚪'; ext=d.quality||'Normal';
+  const meta=PLANS[plan]||PLANS['Básico ⚪'];
+  document.getElementById('tf').classList.add('hidden');
+  document.getElementById('tl').classList.remove('hidden');
+  document.getElementById('lname').textContent=d.user||'Usuario Tidal';
+  document.getElementById('uname').textContent=d.user||'Usuario Tidal';
+  document.getElementById('dot').classList.add('on');
+  const ptag=document.getElementById('ptag');
+  ptag.className='plan-tag '+meta.cls;
+  ptag.textContent=plan;
+  document.getElementById('fmtlbl').textContent=meta.fmt;
+  document.getElementById('urlcard').classList.remove('hidden');
 }
 
-async function searchURL(){
-  const url=document.getElementById('url-input').value.trim();
-  if(!url) return toast('Pega una URL de Tidal','error');
-  const btn=document.getElementById('search-btn');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+function togLyrics(){
+  lyr=!lyr;
+  document.getElementById('ltog').classList.toggle('on',lyr);
+  document.getElementById('llbl').textContent=lyr?'Letras activadas':'Letras desactivadas';
+}
+
+async function doSearch(){
+  const url=document.getElementById('urli').value.trim();
+  if(!url) return toast('Pega una URL de Tidal','er');
+  const btn=document.getElementById('sbtn');
+  btn.disabled=true; btn.innerHTML='<span class="sp"></span>';
   try{
-    const d=await(await fetch('/api/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})).json();
-    if(d.error) toast(d.error,'error'); else renderResults(d);
-  }catch{ toast('Error al buscar','error'); }
+    const d=await(await fetch('/api/info',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})).json();
+    if(d.error) toast(d.error,'er'); else render(d);
+  }catch{ toast('Error al buscar','er'); }
   finally{ btn.disabled=false; btn.innerHTML='Buscar'; }
 }
 
-function renderResults(data){
-  tracks=data.tracks; selected.clear(); allSel=false;
+function render(data){
+  tracks=data.tracks; sel.clear(); allS=false;
   if(data.cover){
-    document.getElementById('cover-img').src=data.cover;
-    document.getElementById('cover-title').textContent=data.title;
-    document.getElementById('cover-artist').textContent=data.artist||'';
-    document.getElementById('cover-row').classList.remove('hidden');
-  } else document.getElementById('cover-row').classList.add('hidden');
+    document.getElementById('cimg').src=data.cover;
+    document.getElementById('ctitle').textContent=data.title;
+    document.getElementById('cartist').textContent=data.artist||'';
+    document.getElementById('crow').classList.remove('hidden');
+  } else document.getElementById('crow').classList.add('hidden');
+  document.getElementById('rmeta').innerHTML=`<b>${tracks.length}</b> canción${tracks.length!==1?'es':''}`;
 
-  document.getElementById('results-meta').innerHTML=
-    `<strong>${tracks.length}</strong> canción${tracks.length!==1?'es':''}`;
-
-  const ext = userExt.toUpperCase();
-  document.getElementById('track-list').innerHTML=tracks.map((t,i)=>`
-    <div class="track-item" id="ti-${i}" onclick="toggleTrack(${i})">
-      <div class="chk" id="chk-${i}"></div>
-      <div class="track-num">${i+1}</div>
-      <div class="track-info">
-        <div class="track-title">${esc(t.title)}</div>
-        <div class="track-sub">${esc(t.artist)}${t.album?' · '+esc(t.album):''}</div>
+  document.getElementById('tlist').innerHTML=tracks.map((t,i)=>`
+    <div class="ti" id="ti${i}" onclick="togTi(${i})">
+      <div class="chk" id="chk${i}"></div>
+      <div class="tnum">${i+1}</div>
+      <div class="tinf">
+        <div class="ttl">${esc(t.title)}</div>
+        <div class="tsub">${esc(t.artist)}${t.album?' · '+esc(t.album):''}</div>
       </div>
-      <div class="track-dur">${t.duration}</div>
-      <div class="track-btns">
-        <button class="dl-btn audio" id="ab-${i}" onclick="event.stopPropagation();dlAudio(${i})">⬇ ${ext}</button>
-        <button class="dl-btn lrc"   id="lb-${i}" onclick="event.stopPropagation();dlLRC(${i})">⬇ LRC</button>
+      <div class="tdur">${t.duration}</div>
+      <div class="tbtns">
+        <button class="tb a" id="ab${i}" onclick="event.stopPropagation();dlAudio(${i})">⬇ Audio</button>
+        <button class="tb l" id="lb${i}" onclick="event.stopPropagation();dlLRC(${i})">⬇ LRC</button>
       </div>
     </div>`).join('');
 
-  document.getElementById('results-section').classList.remove('hidden');
-  updateBar();
+  document.getElementById('rescard').classList.remove('hidden');
+  updBar();
 }
 
-function toggleTrack(i){
-  selected.has(i)?selected.delete(i):selected.add(i);
-  document.getElementById(`ti-${i}`).classList.toggle('selected',selected.has(i));
-  updateBar();
+function togTi(i){
+  sel.has(i)?sel.delete(i):sel.add(i);
+  document.getElementById('ti'+i).classList.toggle('sel',sel.has(i));
+  updBar();
 }
 
-function toggleSelectAll(){
-  allSel=!allSel; selected.clear();
-  if(allSel) tracks.forEach((_,i)=>selected.add(i));
-  tracks.forEach((_,i)=>document.getElementById(`ti-${i}`).classList.toggle('selected',allSel));
-  const ac=document.getElementById('all-chk'),al=document.getElementById('all-label');
-  if(allSel){
-    ac.style.cssText='background:var(--accent);border-color:var(--accent)';
+function togAll(){
+  allS=!allS; sel.clear();
+  if(allS) tracks.forEach((_,i)=>sel.add(i));
+  tracks.forEach((_,i)=>document.getElementById('ti'+i).classList.toggle('sel',allS));
+  const ac=document.getElementById('achk'),al=document.getElementById('albl');
+  if(allS){ac.style.cssText='background:var(--ac);border-color:var(--ac)';
     ac.innerHTML='<span style="font-size:10px;color:#000;font-weight:700">✓</span>';
-    al.textContent='Deseleccionar todo';
-  } else {ac.style.cssText='';ac.innerHTML='';al.textContent='Seleccionar todo';}
-  updateBar();
+    al.textContent='Deseleccionar todo';}
+  else{ac.style.cssText='';ac.innerHTML='';al.textContent='Seleccionar todo';}
+  updBar();
 }
 
-function updateBar(){
-  document.getElementById('dl-count').textContent=selected.size;
-  document.getElementById('dl-bar').classList.toggle('visible',selected.size>0);
+function updBar(){
+  document.getElementById('dlcnt').textContent=sel.size;
+  document.getElementById('dlbar').classList.toggle('on',sel.size>0);
 }
 
 function dlAudio(i){
-  const t=tracks[i], btn=document.getElementById(`ab-${i}`);
-  btn.className='dl-btn audio loading'; btn.textContent='⟳';
+  const t=tracks[i],btn=document.getElementById('ab'+i);
+  btn.className='tb a spin'; btn.textContent='⟳';
+  toast(`Descargando: ${t.title} (puede tardar ~20s)...`);
   const a=document.createElement('a');
-  a.href=`/api/download/${t.id}?lyrics=${lyricsOn}`;
+  a.href=`/api/download/${t.id}?lyrics=${lyr}`;
   a.download=`${t.artist} - ${t.title}`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>{btn.className='dl-btn audio done';btn.textContent=`✓ ${userExt.toUpperCase()}`;},1500);
-  toast(`⬇ ${t.title}`,'success');
+  setTimeout(()=>{btn.className='tb a done';btn.textContent='✓ Audio';},3000);
 }
 
 function dlLRC(i){
-  const t=tracks[i], btn=document.getElementById(`lb-${i}`);
-  btn.className='dl-btn lrc loading'; btn.textContent='⟳';
+  const t=tracks[i],btn=document.getElementById('lb'+i);
+  btn.className='tb l spin'; btn.textContent='⟳';
+  toast(`Obteniendo letras: ${t.title}...`);
   const a=document.createElement('a');
   a.href=`/api/lrc/${t.id}`;
   a.download=`${t.artist} - ${t.title}.lrc`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>{btn.className='dl-btn lrc done';btn.textContent='✓ LRC';},1500);
-  toast(`⬇ LRC: ${t.title}`,'success');
+  setTimeout(()=>{btn.className='tb l done';btn.textContent='✓ LRC';},3000);
 }
 
-async function downloadSelectedAudio(){
-  const idx=Array.from(selected);
-  toast(`Descargando ${idx.length} audio${idx.length>1?'s':''}...`,'success');
-  for(let i=0;i<idx.length;i++){await new Promise(r=>setTimeout(r,i*900));dlAudio(idx[i]);}
+async function dlSelAudio(){
+  const idx=Array.from(sel);
+  toast(`Descargando ${idx.length} audio${idx.length>1?'s':''}...`,'ok');
+  for(let i=0;i<idx.length;i++){await new Promise(r=>setTimeout(r,i*1000));dlAudio(idx[i]);}
 }
 
-async function downloadSelectedLRC(){
-  const idx=Array.from(selected);
-  toast(`Descargando ${idx.length} LRC...`,'success');
-  for(let i=0;i<idx.length;i++){await new Promise(r=>setTimeout(r,i*700));dlLRC(idx[i]);}
+async function dlSelLRC(){
+  const idx=Array.from(sel);
+  toast(`Descargando ${idx.length} LRC...`,'ok');
+  for(let i=0;i<idx.length;i++){await new Promise(r=>setTimeout(r,i*800));dlLRC(idx[i]);}
 }
 
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-let toastTimer;
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+let tt;
 function toast(msg,type=''){
   const el=document.getElementById('toast');
-  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
+  el.textContent=msg; el.className='toast on'+(type?' '+type:'');
+  clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),3500);
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('url-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchURL();});
-  document.getElementById('token-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitToken();});
+  document.getElementById('urli').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+  document.getElementById('ti').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
   init();
 });
 </script>
