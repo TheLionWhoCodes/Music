@@ -313,6 +313,22 @@ def download_lrc(track_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/debug")
+def debug():
+    token = session.get("access_token")
+    if not token: return jsonify({"error": "Sin sesión"}), 401
+    tidal, err = get_tidal_session(token)
+    if err: return jsonify({"error": err}), 401
+    try:
+        u   = tidal.user
+        sub = u.subscription
+        return jsonify({
+            "subscription_dir": [x for x in dir(sub) if not x.startswith("_")],
+            "subscription_dict": sub.__dict__ if hasattr(sub,"__dict__") else str(sub),
+            "user_dir": [x for x in dir(u) if not x.startswith("_")],
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 # ── Frontend ──────────────────────────────────────────────────────────────────
 
 @app.route("/")
