@@ -1,6 +1,6 @@
 flask>=3.0.0
 tidalapi>=0.7.3
-tidal-dl>=2023.3.5
+tidal-dl==2022.10.31.1
 requests>=2.31.0
 gunicorn>=21.0.0
 mutagen>=1.47.0
