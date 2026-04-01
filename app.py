@@ -1,28 +1,54 @@
 from flask import Flask, request, jsonify, session, send_file, Response
 import tidalapi
-import os, re, io, requests as req_lib
+import os, re, io, tempfile, requests as req_lib
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "tidal-web-secret-2024")
 
-# ── Quality detection ─────────────────────────────────────────────────────────
+# ── Plan detection ────────────────────────────────────────────────────────────
 
-def get_tidal_session(access_token, quality="HiFi"):
-    quality_options = {
-        "Master": ["master", "hi_res_lossless", "hi_res"],
-        "HiFi":   ["high", "hifi", "lossless"],
-        "High":   ["low", "high_aac"],
-        "Normal": ["low_96k", "normal"],
-    }
-    q = None
-    for name in quality_options.get(quality, ["high", "hifi", "lossless"]):
-        if hasattr(tidalapi.Quality, name):
-            q = getattr(tidalapi.Quality, name)
-            break
-    if q is None:
-        try:    q = list(tidalapi.Quality)[0]
-        except: q = None
+def detect_plan(tidal):
+    """Detecta el plan de la cuenta y retorna (plan_name, quality_attr, ext)."""
+    # Intentar obtener info de suscripción
     try:
+        sub = tidal.user.subscription
+        plan = str(getattr(sub, "type", "") or getattr(sub, "highestSoundQuality", "")).upper()
+    except:
+        plan = ""
+
+    # Detectar por calidad máxima disponible
+    if any(x in plan for x in ["HI_RES", "HIRES", "MASTER", "DOLBY", "SONY"]):
+        return "HiFi Plus", "master", "flac"
+    elif any(x in plan for x in ["HIFI", "HI_FI", "LOSSLESS", "HIGH"]):
+        return "HiFi", "high", "flac"
+    elif any(x in plan for x in ["PREMIUM", "HIGH"]):
+        return "Premium", "low", "mp3"
+    else:
+        return "Básico", "low_96k", "mp3"
+
+def get_best_quality():
+    """Obtiene el mejor atributo Quality disponible en esta versión de tidalapi."""
+    for attr in ["master", "hi_res_lossless", "hi_res", "high", "hifi", "lossless", "low"]:
+        if hasattr(tidalapi.Quality, attr):
+            return getattr(tidalapi.Quality, attr)
+    try:    return list(tidalapi.Quality)[0]
+    except: return None
+
+def get_quality_for_plan(plan_name):
+    """Retorna el atributo Quality según el plan."""
+    if plan_name in ["HiFi Plus", "HiFi"]:
+        for attr in ["master", "hi_res_lossless", "hi_res", "high", "hifi", "lossless"]:
+            if hasattr(tidalapi.Quality, attr):
+                return getattr(tidalapi.Quality, attr)
+    else:
+        for attr in ["low", "low_96k", "normal"]:
+            if hasattr(tidalapi.Quality, attr):
+                return getattr(tidalapi.Quality, attr)
+    return get_best_quality()
+
+def get_tidal_session(access_token, quality=None):
+    try:
+        q = quality or get_best_quality()
         config = tidalapi.Config(quality=q) if q else tidalapi.Config()
         tidal  = tidalapi.Session(config)
         tidal.load_oauth_session(
@@ -67,71 +93,66 @@ def fetch_cover(track):
     return None
 
 def fetch_lyrics(track):
-    """Retorna (lrc_synced, plain_text)"""
     try:
         lyr = track.lyrics()
         return getattr(lyr, "subtitles", None), getattr(lyr, "text", None)
     except:
         return None, None
 
-def get_ext(ct):
-    ct = ct.lower()
-    if "flac" in ct: return "flac"
-    if "mp4"  in ct or "m4a" in ct or "aac" in ct: return "m4a"
-    if "mpeg" in ct or "mp3" in ct: return "mp3"
-    if "opus" in ct: return "opus"
-    return "flac"
-
-def embed_metadata(data: bytes, ct: str, track, cover: bytes = None, lyrics: str = None) -> bytes:
-    """Incrusta título, artista, álbum, número de pista, portada y letras."""
+def embed_flac_metadata(audio_bytes, track, cover=None, lyrics=None):
+    from mutagen.flac import FLAC, Picture
+    tmp = tempfile.NamedTemporaryFile(suffix=".flac", delete=False)
     try:
-        buf       = io.BytesIO(data)
-        title     = track.name
-        artist    = track.artist.name
-        album     = getattr(getattr(track, "album", None), "name", "") or ""
-        track_num = str(getattr(track, "track_num", 1))
-
-        if "flac" in ct:
-            from mutagen.flac import FLAC, Picture
-            audio = FLAC(buf)
-            audio["title"]       = title
-            audio["artist"]      = artist
-            audio["album"]       = album
-            audio["tracknumber"] = track_num
-            if lyrics:
-                audio["lyrics"] = lyrics
-            if cover:
-                pic = Picture()
-                pic.type = 3; pic.mime = "image/jpeg"; pic.data = cover
-                audio.clear_pictures(); audio.add_picture(pic)
-            out = io.BytesIO(); audio.save(out); return out.getvalue()
-
-        elif any(x in ct for x in ["mp4","m4a","aac"]):
-            from mutagen.mp4 import MP4, MP4Cover
-            audio = MP4(buf)
-            audio["\xa9nam"] = [title]
-            audio["\xa9ART"] = [artist]
-            audio["\xa9alb"] = [album]
-            audio["trkn"]    = [(int(track_num), 0)]
-            if lyrics:   audio["\xa9lyr"] = [lyrics]
-            if cover:    audio["covr"] = [MP4Cover(cover, imageformat=MP4Cover.FORMAT_JPEG)]
-            out = io.BytesIO(); audio.save(out); return out.getvalue()
-
-        elif any(x in ct for x in ["mpeg","mp3"]):
-            from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, APIC, USLT, ID3NoHeaderError
-            try:    audio = ID3(buf)
-            except: audio = ID3()
-            audio.add(TIT2(encoding=3, text=title))
-            audio.add(TPE1(encoding=3, text=artist))
-            audio.add(TALB(encoding=3, text=album))
-            audio.add(TRCK(encoding=3, text=track_num))
-            if lyrics: audio.add(USLT(encoding=3, lang="spa", desc="", text=lyrics))
-            if cover:  audio.add(APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=cover))
-            out = io.BytesIO(data); audio.save(out); return out.getvalue()
-
+        tmp.write(audio_bytes); tmp.flush(); tmp.close()
+        audio = FLAC(tmp.name)
+        audio["title"]       = track.name
+        audio["artist"]      = track.artist.name
+        audio["albumartist"] = track.artist.name
+        try:    audio["album"] = track.album.name
+        except: pass
+        try:    audio["tracknumber"] = str(track.track_num)
+        except: pass
+        try:    audio["date"] = str(track.album.release_date.year)
+        except: pass
+        if lyrics: audio["lyrics"] = lyrics
+        if cover:
+            pic = Picture()
+            pic.type = 3; pic.mime = "image/jpeg"; pic.desc = "Cover"; pic.data = cover
+            audio.clear_pictures(); audio.add_picture(pic)
+        audio.save(tmp.name)
+        with open(tmp.name, "rb") as f:
+            return f.read()
     except Exception as e:
-        print(f"[metadata error] {e}")
-    return data
+        print(f"[flac meta error] {e}")
+        return audio_bytes
+    finally:
+        try: os.unlink(tmp.name)
+        except: pass
+
+def embed_mp3_metadata(audio_bytes, track, cover=None, lyrics=None):
+    from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, APIC, USLT, ID3NoHeaderError
+    tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+    try:
+        tmp.write(audio_bytes); tmp.flush(); tmp.close()
+        try:    audio = ID3(tmp.name)
+        except: audio = ID3()
+        audio.add(TIT2(encoding=3, text=track.name))
+        audio.add(TPE1(encoding=3, text=track.artist.name))
+        try:    audio.add(TALB(encoding=3, text=track.album.name))
+        except: pass
+        try:    audio.add(TRCK(encoding=3, text=str(track.track_num)))
+        except: pass
+        if lyrics: audio.add(USLT(encoding=3, lang="spa", desc="", text=lyrics))
+        if cover:  audio.add(APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=cover))
+        audio.save(tmp.name)
+        with open(tmp.name, "rb") as f:
+            return f.read()
+    except Exception as e:
+        print(f"[mp3 meta error] {e}")
+        return audio_bytes
+    finally:
+        try: os.unlink(tmp.name)
+        except: pass
 
 # ── Token ─────────────────────────────────────────────────────────────────────
 
@@ -139,19 +160,26 @@ def embed_metadata(data: bytes, ct: str, track, cover: bytes = None, lyrics: str
 def set_token():
     token = (request.json or {}).get("token", "").strip()
     if not token: return jsonify({"error": "Token vacío"}), 400
+
     tidal, err = get_tidal_session(token)
     if err: return jsonify({"error": err}), 401
+
+    plan_name, _, ext = detect_plan(tidal)
     session["access_token"] = token
+    session["plan"]         = plan_name
+    session["dl_ext"]       = ext
+
     try:
-        u = tidal.user
+        u    = tidal.user
         name = (getattr(u,"first_name","") + " " + getattr(u,"last_name","")).strip()
-        return jsonify({"ok": True, "user": name or "Usuario Tidal"})
     except:
-        return jsonify({"ok": True, "user": "Usuario Tidal"})
+        name = "Usuario Tidal"
+
+    return jsonify({"ok": True, "user": name or "Usuario Tidal", "plan": plan_name, "ext": ext})
 
 @app.route("/api/token", methods=["DELETE"])
 def clear_token():
-    session.pop("access_token", None)
+    session.clear()
     return jsonify({"ok": True})
 
 @app.route("/api/token/status")
@@ -160,14 +188,16 @@ def token_status():
     if not token: return jsonify({"logged_in": False})
     tidal, err = get_tidal_session(token)
     if err:
-        session.pop("access_token", None)
+        session.clear()
         return jsonify({"logged_in": False})
     try:
-        u = tidal.user
+        u    = tidal.user
         name = (getattr(u,"first_name","") + " " + getattr(u,"last_name","")).strip()
-        return jsonify({"logged_in": True, "user": name or "Usuario Tidal"})
     except:
-        return jsonify({"logged_in": True, "user": "Usuario Tidal"})
+        name = "Usuario Tidal"
+    plan = session.get("plan", "Desconocido")
+    ext  = session.get("dl_ext", "flac")
+    return jsonify({"logged_in": True, "user": name or "Usuario Tidal", "plan": plan, "ext": ext})
 
 # ── Info ──────────────────────────────────────────────────────────────────────
 
@@ -188,10 +218,10 @@ def get_info():
                 "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
                             "album": getattr(getattr(t,"album",None),"name",""),
                             "track_num": getattr(t,"track_num",1),
-                            "duration": fmt_dur(t.duration), "url": url}]
+                            "duration": fmt_dur(t.duration)}]
             })
         elif tipo == "album":
-            a = tidal.album(int(eid)); ts = list(a.tracks())
+            a  = tidal.album(int(eid)); ts = list(a.tracks())
             cover = None
             try: cover = a.image(320)
             except: pass
@@ -199,35 +229,35 @@ def get_info():
                 "type": "album", "title": a.name, "artist": a.artist.name, "cover": cover,
                 "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
                             "album": a.name, "track_num": getattr(t,"track_num",i+1),
-                            "duration": fmt_dur(t.duration),
-                            "url": f"https://tidal.com/browse/track/{t.id}"}
+                            "duration": fmt_dur(t.duration)}
                            for i,t in enumerate(ts)]
             })
         elif tipo == "playlist":
-            p = tidal.playlist(eid); ts = list(p.tracks())
+            p  = tidal.playlist(eid); ts = list(p.tracks())
             return jsonify({
                 "type": "playlist", "title": p.name, "artist": "", "cover": None,
                 "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
                             "album": getattr(getattr(t,"album",None),"name",""),
                             "track_num": getattr(t,"track_num",i+1),
-                            "duration": fmt_dur(t.duration),
-                            "url": f"https://tidal.com/browse/track/{t.id}"}
+                            "duration": fmt_dur(t.duration)}
                            for i,t in enumerate(ts)]
             })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── Download audio (con metadatos + portada) ──────────────────────────────────
+# ── Download audio ────────────────────────────────────────────────────────────
 
 @app.route("/api/download/<int:track_id>")
 def download_audio(track_id):
-    token = session.get("access_token")
+    token    = session.get("access_token")
+    plan     = session.get("plan", "Básico")
+    dl_ext   = session.get("dl_ext", "flac")
     if not token: return jsonify({"error": "Sin sesión activa"}), 401
 
-    quality   = request.args.get("quality", "HiFi")
     do_lyrics = request.args.get("lyrics", "true").lower() == "true"
 
-    tidal, err = get_tidal_session(token, quality)
+    q       = get_quality_for_plan(plan)
+    tidal, err = get_tidal_session(token, q)
     if err: return jsonify({"error": err}), 401
 
     try:
@@ -238,16 +268,23 @@ def download_audio(track_id):
         audio_data   = r.content
 
         cover = fetch_cover(track)
-
         plain_lyrics = None
         if do_lyrics:
             _, plain_lyrics = fetch_lyrics(track)
 
-        audio_data = embed_metadata(audio_data, content_type, track, cover, plain_lyrics)
+        # Determinar formato real recibido
+        ct = content_type.lower()
+        if "flac" in ct:
+            audio_data = embed_flac_metadata(audio_data, track, cover, plain_lyrics)
+            ext = "flac"
+        elif any(x in ct for x in ["mpeg", "mp3"]):
+            audio_data = embed_mp3_metadata(audio_data, track, cover, plain_lyrics)
+            ext = "mp3"
+        else:
+            # m4a/aac — devolver sin metadata (mutagen MP4 en tmpfile)
+            ext = "m4a"
 
-        ext      = get_ext(content_type)
         basename = f"{safe_fn(track.artist.name)} - {safe_fn(track.name)}"
-
         return Response(audio_data, content_type=content_type, headers={
             "Content-Disposition": f'attachment; filename="{basename}.{ext}"',
             "Content-Length": str(len(audio_data)),
@@ -261,20 +298,16 @@ def download_audio(track_id):
 def download_lrc(track_id):
     token = session.get("access_token")
     if not token: return jsonify({"error": "Sin sesión activa"}), 401
-
     tidal, err = get_tidal_session(token)
     if err: return jsonify({"error": err}), 401
-
     try:
         track = tidal.track(track_id)
         lrc, plain = fetch_lyrics(track)
         content = lrc or plain
         if not content:
-            return jsonify({"error": "No hay letras disponibles para esta canción"}), 404
-
+            return jsonify({"error": "No hay letras disponibles"}), 404
         basename = f"{safe_fn(track.artist.name)} - {safe_fn(track.name)}"
         ext = "lrc" if lrc else "txt"
-
         return Response(content.encode("utf-8"), content_type="text/plain; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="{basename}.{ext}"'})
     except Exception as e:
