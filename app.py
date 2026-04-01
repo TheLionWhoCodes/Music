@@ -1,362 +1,287 @@
+import os, re, json, shutil, subprocess, tempfile, threading
 from flask import Flask, request, jsonify, session, send_file, Response
 import tidalapi
-import os, re, json, uuid, shutil, subprocess, tempfile, threading, time, base64
-import requests as req_lib
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "tidal-web-secret-2024")
+app.secret_key = os.environ.get("SECRET_KEY", "tidalget-secret-2024")
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# Lock para evitar conflictos de config cuando hay descargas simultáneas
+dl_lock = threading.Lock()
 
-def fmt_dur(sec):
-    return f"{int(sec)//60}:{int(sec)%60:02d}"
+# ── Utilidades ────────────────────────────────────────────────────────────────
 
-def parse_tidal_url(url):
-    patterns = [
-        (r"tidal\.com/(?:\w+/)?track/(\d+)",              "track"),
-        (r"tidal\.com/(?:\w+/)?album/(\d+)",               "album"),
-        (r"tidal\.com/(?:\w+/)?playlist/([\w-]+)",         "playlist"),
-        (r"listen\.tidal\.com/(?:\w+/)?track/(\d+)",       "track"),
-        (r"listen\.tidal\.com/(?:\w+/)?album/(\d+)",       "album"),
+def parse_url(url):
+    for pat, tipo in [
+        (r"tidal\.com/(?:\w+/)?track/(\d+)",          "track"),
+        (r"tidal\.com/(?:\w+/)?album/(\d+)",           "album"),
+        (r"tidal\.com/(?:\w+/)?playlist/([\w-]+)",     "playlist"),
+        (r"listen\.tidal\.com/(?:\w+/)?track/(\d+)",   "track"),
+        (r"listen\.tidal\.com/(?:\w+/)?album/(\d+)",   "album"),
         (r"listen\.tidal\.com/(?:\w+/)?playlist/([\w-]+)", "playlist"),
-    ]
-    for pattern, tipo in patterns:
-        m = re.search(pattern, url)
-        if m:
-            return tipo, m.group(1)
+    ]:
+        m = re.search(pat, url)
+        if m: return tipo, m.group(1)
     return None, None
 
-def safe_fn(s):
+def fmt(sec):
+    return f"{int(sec)//60}:{int(sec)%60:02d}"
+
+def safe(s):
     return re.sub(r'[\\/*?:"<>|]', "", str(s or "")).strip()
 
-def get_tidal_session(access_token):
+def tidal_session(token):
+    """Crea sesión tidalapi con el accessToken."""
     for attr in ["master","hi_res_lossless","hi_res","high","hifi","lossless","low"]:
         if hasattr(tidalapi.Quality, attr):
-            best = getattr(tidalapi.Quality, attr)
+            q = getattr(tidalapi.Quality, attr)
             break
     else:
-        best = None
+        q = None
     try:
-        config = tidalapi.Config(quality=best) if best else tidalapi.Config()
-        tidal  = tidalapi.Session(config)
+        cfg    = tidalapi.Config(quality=q) if q else tidalapi.Config()
+        tidal  = tidalapi.Session(cfg)
         tidal.load_oauth_session(
-            token_type="Bearer", access_token=access_token,
-            refresh_token=None, expiry_time=None,
+            token_type="Bearer", access_token=token,
+            refresh_token=None, expiry_time=None
         )
-        if tidal.check_login():
-            return tidal, None
-        return None, "Token inválido o expirado"
+        return (tidal, None) if tidal.check_login() else (None, "Token inválido o expirado")
     except Exception as e:
         return None, str(e)
 
 def detect_plan(tidal):
+    """Retorna (nombre_plan, calidad_tidal_dl)."""
     try:
         sub  = tidal.user.subscription
         plan = str(getattr(sub,"type","") or getattr(sub,"highestSoundQuality","")).upper()
     except:
         plan = ""
     if any(x in plan for x in ["HI_RES","HIRES","MASTER","DOLBY"]):
-        return "HiFi Plus", "MASTER"
-    elif any(x in plan for x in ["HIFI","HI_FI","LOSSLESS"]):
-        return "HiFi", "HiFi"
-    elif any(x in plan for x in ["PREMIUM","HIGH"]):
-        return "Premium", "High"
-    else:
-        return "Básico", "Normal"
+        return "HiFi Plus 🎵", "Master"
+    if any(x in plan for x in ["HIFI","HI_FI","LOSSLESS"]):
+        return "HiFi 💎", "HiFi"
+    if any(x in plan for x in ["PREMIUM","HIGH"]):
+        return "Premium 🟢", "High"
+    return "Básico ⚪", "Normal"
 
-def write_tidal_dl_config(token, work_dir, quality="HiFi", lyrics=True):
-    """Escribe el config de tidal-dl para esta sesión."""
+def write_cfg(token, dl_path, quality, lyrics):
+    """Escribe ~/.tidal-dl.json con el token del usuario."""
     cfg = {
-        "downloadPath": work_dir,
-        "quality": quality,
-        "addLyrics": lyrics,
-        "lyricFile": lyrics,
+        "downloadPath":     dl_path,
+        "quality":          quality,
+        "addLyrics":        lyrics,
+        "lyricFile":        lyrics,
         "usePlaylistFolder": False,
         "albumFolderFormat": "",
-        "trackFileFormat": "{ArtistName} - {TrackTitle}",
-        "accessToken": token,
-        "tokenType": "Bearer",
+        "trackFileFormat":  "{ArtistName} - {TrackTitle}",
+        "accessToken":      token,
+        "tokenType":        "Bearer",
+        "refreshToken":     "",
     }
-    cfg_path = os.path.join(work_dir, "tidal-dl.json")
-    with open(cfg_path, "w") as f:
-        json.dump(cfg, f)
-    return cfg_path
+    path = os.path.expanduser("~/.tidal-dl.json")
+    with open(path, "w") as f:
+        json.dump(cfg, f, indent=2)
 
-def find_audio_file(directory):
-    EXTS = {".flac", ".m4a", ".mp3", ".aac", ".opus"}
+def find_file(directory, extensions):
     for root, _, files in os.walk(directory):
         for f in files:
-            if os.path.splitext(f)[1].lower() in EXTS:
+            if os.path.splitext(f)[1].lower() in extensions:
                 return os.path.join(root, f)
     return None
 
-def find_lrc_file(directory):
-    for root, _, files in os.walk(directory):
-        for f in files:
-            if f.lower().endswith(".lrc"):
-                return os.path.join(root, f)
-    return None
+def run_tidal_dl(token, quality, lyrics, track_url):
+    """Corre tidal-dl y retorna la carpeta temporal con los archivos."""
+    tmp = tempfile.mkdtemp(prefix="tg_")
+    with dl_lock:
+        write_cfg(token, tmp, quality, lyrics)
+        result = subprocess.run(
+            ["tidal-dl", "-l", track_url],
+            capture_output=True, text=True, timeout=180, cwd=tmp
+        )
+    return tmp, result
 
 # ── Token ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/token", methods=["POST"])
 def set_token():
     token = (request.json or {}).get("token", "").strip()
-    if not token: return jsonify({"error": "Token vacío"}), 400
-    tidal, err = get_tidal_session(token)
-    if err: return jsonify({"error": err}), 401
+    if not token:
+        return jsonify({"error": "Token vacío"}), 400
+
+    tidal, err = tidal_session(token)
+    if err:
+        return jsonify({"error": err}), 401
+
     plan_name, quality = detect_plan(tidal)
-    session["access_token"] = token
-    session["plan"]         = plan_name
-    session["quality"]      = quality
+    session["token"]   = token
+    session["plan"]    = plan_name
+    session["quality"] = quality
+
     try:
         u    = tidal.user
-        name = (getattr(u,"first_name","") + " " + getattr(u,"last_name","")).strip()
+        name = (getattr(u,"first_name","")+" "+getattr(u,"last_name","")).strip()
     except:
         name = "Usuario Tidal"
-    return jsonify({"ok": True, "user": name or "Usuario Tidal", "plan": plan_name, "quality": quality})
+
+    return jsonify({"ok": True, "user": name or "Usuario Tidal",
+                    "plan": plan_name, "quality": quality})
 
 @app.route("/api/token", methods=["DELETE"])
-def clear_token():
+def del_token():
     session.clear()
     return jsonify({"ok": True})
 
 @app.route("/api/token/status")
 def token_status():
-    token = session.get("access_token")
-    if not token: return jsonify({"logged_in": False})
-    tidal, err = get_tidal_session(token)
+    token = session.get("token")
+    if not token:
+        return jsonify({"logged_in": False})
+    tidal, err = tidal_session(token)
     if err:
         session.clear()
         return jsonify({"logged_in": False})
     try:
         u    = tidal.user
-        name = (getattr(u,"first_name","") + " " + getattr(u,"last_name","")).strip()
+        name = (getattr(u,"first_name","")+" "+getattr(u,"last_name","")).strip()
     except:
         name = "Usuario Tidal"
-    return jsonify({
-        "logged_in": True,
-        "user":    name or "Usuario Tidal",
-        "plan":    session.get("plan", "Básico"),
-        "quality": session.get("quality", "Normal"),
-    })
-
-# ── Debug ─────────────────────────────────────────────────────────────────────
-
-@app.route("/api/debug")
-def debug():
-    token = session.get("access_token")
-    if not token: return jsonify({"error": "Sin sesión"}), 401
-    tidal, err = get_tidal_session(token)
-    if err: return jsonify({"error": err}), 401
-    try:
-        u   = tidal.user
-        sub = u.subscription
-        return jsonify({
-            "subscription_dir":  [x for x in dir(sub) if not x.startswith("_")],
-            "subscription_dict": sub.__dict__ if hasattr(sub,"__dict__") else str(sub),
-            "user_dir":          [x for x in dir(u) if not x.startswith("_")],
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)})
+    return jsonify({"logged_in": True, "user": name or "Usuario Tidal",
+                    "plan": session.get("plan","Básico ⚪"),
+                    "quality": session.get("quality","Normal")})
 
 # ── Info ──────────────────────────────────────────────────────────────────────
 
 @app.route("/api/info", methods=["POST"])
 def get_info():
-    token = session.get("access_token")
-    if not token: return jsonify({"error": "Sin sesión activa"}), 401
+    token = session.get("token")
+    if not token:
+        return jsonify({"error": "Sin sesión activa"}), 401
+
     url = (request.json or {}).get("url", "").strip()
-    tipo, eid = parse_tidal_url(url)
-    if not tipo: return jsonify({"error": "URL de Tidal no reconocida"}), 400
-    tidal, err = get_tidal_session(token)
-    if err: return jsonify({"error": err}), 401
+    tipo, eid = parse_url(url)
+    if not tipo:
+        return jsonify({"error": "URL de Tidal no reconocida"}), 400
+
+    tidal, err = tidal_session(token)
+    if err:
+        return jsonify({"error": err}), 401
+
     try:
         if tipo == "track":
             t = tidal.track(int(eid))
             return jsonify({
-                "type": "track", "title": t.name, "artist": t.artist.name, "cover": None,
-                "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
+                "type": "track", "title": t.name,
+                "artist": t.artist.name, "cover": None,
+                "tracks": [{"id": t.id, "title": t.name,
+                            "artist": t.artist.name,
                             "album": getattr(getattr(t,"album",None),"name",""),
-                            "track_num": getattr(t,"track_num",1),
-                            "duration": fmt_dur(t.duration), "url": url}]
+                            "duration": fmt(t.duration),
+                            "url": url}]
             })
         elif tipo == "album":
-            a  = tidal.album(int(eid)); ts = list(a.tracks())
+            a = tidal.album(int(eid))
+            ts = list(a.tracks())
             cover = None
             try: cover = a.image(320)
             except: pass
             return jsonify({
-                "type": "album", "title": a.name, "artist": a.artist.name, "cover": cover,
-                "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
-                            "album": a.name, "track_num": getattr(t,"track_num",i+1),
-                            "duration": fmt_dur(t.duration),
+                "type": "album", "title": a.name,
+                "artist": a.artist.name, "cover": cover,
+                "tracks": [{"id": t.id, "title": t.name,
+                            "artist": t.artist.name, "album": a.name,
+                            "duration": fmt(t.duration),
                             "url": f"https://tidal.com/browse/track/{t.id}"}
-                           for i,t in enumerate(ts)]
+                           for t in ts]
             })
         elif tipo == "playlist":
-            p  = tidal.playlist(eid); ts = list(p.tracks())
+            p = tidal.playlist(eid)
+            ts = list(p.tracks())
             return jsonify({
-                "type": "playlist", "title": p.name, "artist": "", "cover": None,
-                "tracks": [{"id": t.id, "title": t.name, "artist": t.artist.name,
+                "type": "playlist", "title": p.name,
+                "artist": "", "cover": None,
+                "tracks": [{"id": t.id, "title": t.name,
+                            "artist": t.artist.name,
                             "album": getattr(getattr(t,"album",None),"name",""),
-                            "track_num": getattr(t,"track_num",i+1),
-                            "duration": fmt_dur(t.duration),
+                            "duration": fmt(t.duration),
                             "url": f"https://tidal.com/browse/track/{t.id}"}
-                           for i,t in enumerate(ts)]
+                           for t in ts]
             })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── Download audio via tidal-dl ───────────────────────────────────────────────
+# ── Download audio ────────────────────────────────────────────────────────────
 
 @app.route("/api/download/<int:track_id>")
 def download_audio(track_id):
-    token   = session.get("access_token")
+    token   = session.get("token")
     quality = session.get("quality", "Normal")
-    if not token: return jsonify({"error": "Sin sesión activa"}), 401
+    if not token:
+        return jsonify({"error": "Sin sesión activa"}), 401
 
-    do_lyrics = request.args.get("lyrics", "true").lower() == "true"
-
-    work_dir     = tempfile.mkdtemp(prefix="tidal_")
-    home_cfg     = os.path.expanduser("~/.tidal-dl.json")
-    backup_cfg   = home_cfg + ".bak"
-    restored     = False
+    lyrics    = request.args.get("lyrics","true").lower() == "true"
+    track_url = f"https://tidal.com/browse/track/{track_id}"
+    tmp       = None
 
     try:
-        # Backup del config global si existe
-        if os.path.exists(home_cfg):
-            shutil.copy2(home_cfg, backup_cfg)
+        tmp, result = run_tidal_dl(token, quality, lyrics, track_url)
 
-        # Escribir config con token del usuario
-        cfg = {
-            "downloadPath": work_dir,
-            "quality":      quality,
-            "addLyrics":    do_lyrics,
-            "lyricFile":    do_lyrics,
-            "usePlaylistFolder": False,
-            "albumFolderFormat": "",
-            "trackFileFormat":   "{ArtistName} - {TrackTitle}",
-            "accessToken":  token,
-            "tokenType":    "Bearer",
-        }
-        with open(home_cfg, "w") as f:
-            json.dump(cfg, f)
+        audio = find_file(tmp, {".flac",".m4a",".mp3",".aac",".opus"})
+        if not audio:
+            err_msg = (result.stderr or result.stdout or "Sin output")[-400:]
+            return jsonify({"error": f"tidal-dl falló: {err_msg}"}), 500
 
-        track_url = f"https://tidal.com/browse/track/{track_id}"
-        result = subprocess.run(
-            ["tidal-dl", "-l", track_url, "-q", quality],
-            capture_output=True, text=True, timeout=120,
-            cwd=work_dir
-        )
+        ext  = os.path.splitext(audio)[1].lower()
+        name = os.path.splitext(os.path.basename(audio))[0]
+        mime = {".flac":"audio/flac",".m4a":"audio/mp4",
+                ".mp3":"audio/mpeg",".aac":"audio/aac",".opus":"audio/opus"}.get(ext,"audio/flac")
 
-        # Restaurar config global
-        if os.path.exists(backup_cfg):
-            shutil.copy2(backup_cfg, home_cfg)
-            os.remove(backup_cfg)
-        restored = True
+        with open(audio,"rb") as f:
+            data = f.read()
 
-        audio_path = find_audio_file(work_dir)
-        if not audio_path:
-            print(f"[stdout] {result.stdout}\n[stderr] {result.stderr}")
-            return jsonify({"error": f"No se pudo descargar. Error: {result.stderr[-300:]}"}), 500
-
-        ext      = os.path.splitext(audio_path)[1].lower()
-        basename = os.path.splitext(os.path.basename(audio_path))[0]
-
-        with open(audio_path, "rb") as f:
-            audio_data = f.read()
-
-        mime = {
-            ".flac": "audio/flac",
-            ".m4a":  "audio/mp4",
-            ".mp3":  "audio/mpeg",
-            ".aac":  "audio/aac",
-            ".opus": "audio/opus",
-        }.get(ext, "audio/flac")
-
-        return Response(audio_data, content_type=mime, headers={
-            "Content-Disposition": f'attachment; filename="{basename}{ext}"',
-            "Content-Length": str(len(audio_data)),
+        return Response(data, content_type=mime, headers={
+            "Content-Disposition": f'attachment; filename="{name}{ext}"',
+            "Content-Length": str(len(data)),
         })
 
     except subprocess.TimeoutExpired:
-        return jsonify({"error": "Timeout al descargar"}), 500
+        return jsonify({"error": "Timeout (180s). Intenta de nuevo."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        if not restored and os.path.exists(backup_cfg):
-            shutil.copy2(backup_cfg, home_cfg)
-            try: os.remove(backup_cfg)
-            except: pass
-        try: shutil.rmtree(work_dir, ignore_errors=True)
-        except: pass
+        if tmp: shutil.rmtree(tmp, ignore_errors=True)
 
 # ── Download LRC ──────────────────────────────────────────────────────────────
 
 @app.route("/api/lrc/<int:track_id>")
 def download_lrc(track_id):
-    token   = session.get("access_token")
+    token   = session.get("token")
     quality = session.get("quality", "Normal")
-    if not token: return jsonify({"error": "Sin sesión activa"}), 401
+    if not token:
+        return jsonify({"error": "Sin sesión activa"}), 401
 
-    work_dir   = tempfile.mkdtemp(prefix="tidal_lrc_")
-    home_cfg   = os.path.expanduser("~/.tidal-dl.json")
-    backup_cfg = home_cfg + ".bak"
-    restored   = False
+    track_url = f"https://tidal.com/browse/track/{track_id}"
+    tmp       = None
 
     try:
-        if os.path.exists(home_cfg):
-            shutil.copy2(home_cfg, backup_cfg)
+        tmp, result = run_tidal_dl(token, quality, True, track_url)
 
-        cfg = {
-            "downloadPath": work_dir,
-            "quality":      quality,
-            "addLyrics":    True,
-            "lyricFile":    True,
-            "usePlaylistFolder": False,
-            "albumFolderFormat": "",
-            "trackFileFormat":   "{ArtistName} - {TrackTitle}",
-            "accessToken":  token,
-            "tokenType":    "Bearer",
-        }
-        with open(home_cfg, "w") as f:
-            json.dump(cfg, f)
+        lrc = find_file(tmp, {".lrc"})
+        if not lrc:
+            return jsonify({"error": "No hay letras para esta canción"}), 404
 
-        track_url = f"https://tidal.com/browse/track/{track_id}"
-        subprocess.run(
-            ["tidal-dl", "-l", track_url, "-q", quality],
-            capture_output=True, text=True, timeout=120,
-            cwd=work_dir
-        )
+        name = os.path.splitext(os.path.basename(lrc))[0]
+        with open(lrc,"r",encoding="utf-8",errors="replace") as f:
+            content = f.read()
 
-        if os.path.exists(backup_cfg):
-            shutil.copy2(backup_cfg, home_cfg)
-            os.remove(backup_cfg)
-        restored = True
-
-        lrc_path = find_lrc_file(work_dir)
-        if not lrc_path:
-            return jsonify({"error": "No hay letras disponibles para esta canción"}), 404
-
-        basename = os.path.splitext(os.path.basename(lrc_path))[0]
-        with open(lrc_path, "r", encoding="utf-8", errors="replace") as f:
-            lrc_content = f.read()
-
-        return Response(lrc_content.encode("utf-8"), content_type="text/plain; charset=utf-8",
-                        headers={"Content-Disposition": f'attachment; filename="{basename}.lrc"'})
+        return Response(content.encode("utf-8"),
+                        content_type="text/plain; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{name}.lrc"'})
 
     except subprocess.TimeoutExpired:
-        return jsonify({"error": "Timeout al obtener letras"}), 500
+        return jsonify({"error": "Timeout. Intenta de nuevo."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        if not restored and os.path.exists(backup_cfg):
-            shutil.copy2(backup_cfg, home_cfg)
-            try: os.remove(backup_cfg)
-            except: pass
-        try: shutil.rmtree(work_dir, ignore_errors=True)
-        except: pass
+        if tmp: shutil.rmtree(tmp, ignore_errors=True)
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 
